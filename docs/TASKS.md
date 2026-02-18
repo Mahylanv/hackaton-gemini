@@ -14,7 +14,7 @@
 - [ ] Espace personnel Alumni pour mise à jour des données
 
 ## Phase 3 : Plateforme Alumni & Networking
-- [ ] Annuaire des Alumni (recherche filtrée)
+- [x] Annuaire des Alumni (recherche filtrée)
 - [ ] Gestion des accès et visibilité des données (RGPD)
 - [ ] Système de mise en relation / contact
 
