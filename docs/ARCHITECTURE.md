@@ -1,13 +1,13 @@
 # Architecture — Alumni
 
 ## Vue d'ensemble
-Application de gestion d'Alumni utilisant Next.js avec une architecture basée sur l'App Router.
+Application de gestion d'Alumni utilisant Next.js avec une architecture basée sur l'App Router et Supabase pour tout le backend.
 
 ## Stack technique
 - **Frontend** : Next.js 15 / App Router
-- **Backend** : API Routes Next.js / Server Actions
-- **Base de données** : Supabase (PostgreSQL) + Prisma ORM
-- **Auth** : NextAuth.js v5 (Auth.js)
+- **Backend** : Supabase (Database, Auth, Storage)
+- **Base de données** : Supabase (PostgreSQL)
+- **Auth** : Supabase Auth (SSR)
 - **Styling** : Tailwind CSS + shadcn/ui
 - **Validation** : Zod
 - **Tests** : Vitest + Playwright
@@ -17,16 +17,16 @@ src/
 ├── app/           # Routes et pages (App Router)
 ├── components/    # Composants React réutilisables
 │   ├── ui/       # Composants de base (shadcn)
-│   └── features/ # Composants métier (auth, jobs, alumni)
-├── lib/          # Utilitaires, config (prisma, auth), helpers
+│   └── features/ # Composants métier
+├── lib/          # Utilitaires Supabase client
+├── utils/        # Utilitaires Supabase server
 ├── hooks/        # Hooks React personnalisés
-├── server/       # Logique serveur (actions, services)
 └── types/        # Types TypeScript partagés
 
 ## Design Patterns
 - Server Components par défaut
-- Server Actions pour les mutations
-- Repository/Service pattern pour l'accès aux données
+- Server Actions avec Supabase Server Client
+- Row Level Security (RLS) pour la protection des données
 - Formulaires gérés avec React Hook Form + Zod
 
 ## Conventions

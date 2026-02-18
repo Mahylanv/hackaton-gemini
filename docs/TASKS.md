@@ -2,14 +2,13 @@
 
 ## Phase 1 : Setup & Infrastructure
 - [x] Initialisation du projet Next.js + TS
-- [x] Configuration de Prisma + PostgreSQL
-- [ ] Configuration de NextAuth.js v5
+- [x] Configuration de Supabase (Database & Auth)
 - [ ] Setup shadcn/ui et thématique de base
 - [x] Configuration du MCP Context7
 - [x] Setup Prettier & Vitest
 
 ## Phase 2 : Gestion des Profils & Backoffice
-- [ ] Schéma de base : User, Profile (Nom, Prénom, Email, LinkedIn, Année, Diplôme)
+- [ ] Modélisation Supabase (User, Profile, Job, Event)
 - [ ] Import/Prefill des données alumni
 - [ ] Backoffice complet pour les intervenants (Gestion des membres)
 - [ ] Espace personnel Alumni pour mise à jour des données

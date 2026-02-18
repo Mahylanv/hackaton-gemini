@@ -6,11 +6,11 @@ Lis `docs/ARCHITECTURE.md` pour comprendre la structure complète.
 
 ## Règles techniques
 - Utilise TypeScript strict, JAMAIS de `any`
-- Utilise les Server Components Next.js par défaut (Next.js 15+ recommandé)
-- Prisma pour toutes les requêtes DB (PostgreSQL)
+- Utilise les Server Components Next.js par défaut
+- Supabase pour toutes les requêtes DB et l'Auth
 - Gère les erreurs avec des try/catch et des messages explicites
+- Row Level Security (RLS) doit être pris en compte
 - Chaque fonction publique doit avoir un JSDoc
-- Authentification via NextAuth.js v5
 
 ## Conventions de code
 - Maximum 300 lignes par fichier
