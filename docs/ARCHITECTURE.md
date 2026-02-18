@@ -6,7 +6,7 @@ Application de gestion d'Alumni utilisant Next.js avec une architecture basée s
 ## Stack technique
 - **Frontend** : Next.js 15 / App Router
 - **Backend** : API Routes Next.js / Server Actions
-- **Base de données** : PostgreSQL + Prisma ORM
+- **Base de données** : Supabase (PostgreSQL) + Prisma ORM
 - **Auth** : NextAuth.js v5 (Auth.js)
 - **Styling** : Tailwind CSS + shadcn/ui
 - **Validation** : Zod
