@@ -1,11 +1,12 @@
 # Tâches — Alumni
 
 ## Phase 1 : Setup & Infrastructure
-- [ ] Initialisation du projet Next.js + TS
-- [ ] Configuration de Prisma + PostgreSQL
+- [x] Initialisation du projet Next.js + TS
+- [x] Configuration de Prisma + PostgreSQL
 - [ ] Configuration de NextAuth.js v5
 - [ ] Setup shadcn/ui et thématique de base
-- [ ] Configuration du MCP Context7
+- [x] Configuration du MCP Context7
+- [x] Setup Prettier & Vitest
 
 ## Phase 2 : Gestion des Profils & Backoffice
 - [ ] Schéma de base : User, Profile (Nom, Prénom, Email, LinkedIn, Année, Diplôme)
