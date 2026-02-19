@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Alumni Sniper - MyDigitalSchool",
+  "version": "1.0",
+  "description": "Scrape les profils LinkedIn Alumni et les envoie vers l'application Alumni.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["http://localhost:3000/*", "https://www.linkedin.com/*"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/school/*/people/*",
+        "https://www.linkedin.com/search/results/people/*"
+      ],
+      "js": ["content.js"]
+    }
+  ]
+}

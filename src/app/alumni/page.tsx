@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { LinkedInLogoIcon } from '@radix-ui/react-icons'
+import { SyncAlumniButton } from '@/components/features/sync-button'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -23,7 +23,7 @@ export default async function AlumniDirectoryPage({
   const year = params.year as string || ''
 
   let supabaseQuery = supabase
-    .from('profiles')
+    .from('alumni')
     .select('*')
     .order('last_name', { ascending: true })
 
@@ -39,33 +39,36 @@ export default async function AlumniDirectoryPage({
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6">
         <div>
           <h1 className="text-3xl font-bold italic uppercase">Annuaire Alumni</h1>
           <p className="text-muted-foreground">Retrouvez les anciens étudiants du réseau.</p>
         </div>
 
-        <form className="flex flex-wrap gap-2 md:w-auto">
-          <Input 
-            name="query" 
-            placeholder="Rechercher un nom..." 
-            defaultValue={query}
-            className="w-full md:w-64"
-          />
-          <Input 
-            name="year" 
-            type="number"
-            placeholder="Année" 
-            defaultValue={year}
-            className="w-full md:w-24"
-          />
-          <Button type="submit">Filtrer</Button>
-          {(query || year) && (
-            <Link href="/alumni">
-              <Button variant="ghost">Effacer</Button>
-            </Link>
-          )}
-        </form>
+        <div className="flex flex-col gap-4">
+          <SyncAlumniButton />
+          <form className="flex flex-wrap gap-2 md:w-auto">
+            <Input 
+              name="query" 
+              placeholder="Rechercher un nom..." 
+              defaultValue={query}
+              className="w-full md:w-64"
+            />
+            <Input 
+              name="year" 
+              type="number"
+              placeholder="Année" 
+              defaultValue={year}
+              className="w-full md:w-24"
+            />
+            <Button type="submit">Filtrer</Button>
+            {(query || year) && (
+              <Link href="/alumni">
+                <Button variant="ghost">Effacer</Button>
+              </Link>
+            )}
+          </form>
+        </div>
       </header>
 
       {error ? (
@@ -76,6 +79,19 @@ export default async function AlumniDirectoryPage({
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {alumni.map((profile) => (
             <Card key={profile.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <div className="h-32 bg-muted relative">
+                {profile.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt={`${profile.first_name} ${profile.last_name}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold text-2xl">
+                    {profile.first_name?.[0]}{profile.last_name?.[0]}
+                  </div>
+                )}
+              </div>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">
                   {profile.first_name} {profile.last_name}

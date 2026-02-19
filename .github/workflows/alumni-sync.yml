@@ -1,0 +1,30 @@
+name: Annual Alumni Sync
+
+on:
+  schedule:
+    # S'exécute à 00:00 le 1er octobre de chaque année
+    - cron: '0 0 1 10 *'
+  workflow_dispatch: # Permet de lancer le script manuellement pour tester
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Import Script
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Si on utilise une API de scraping tiers, on l'ajoute ici
+          # SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+        run: npx tsx scripts/import-alumni.ts
