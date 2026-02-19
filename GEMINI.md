@@ -1,41 +1,32 @@
 # Règles Projet — Alumni
 
 ## Contexte
-Tu travailles sur **Alumni**, une plateforme permettant aux anciens étudiants de se retrouver, de mettre à jour leurs informations, de consulter des annonces (CDI, CDD, Freelance) et de suivre les événements de l'école.
-Lis `docs/ARCHITECTURE.md` pour comprendre la structure complète.
+Plateforme de gestion pour l'école.
+- **Alumni** : Consultation publique (Annuaire + Jobs).
+- **Admins** : Gestion des offres d'emploi.
+- **Super Admin** : Gestion des rôles Admins.
 
 ## Règles techniques
 - Utilise TypeScript strict, JAMAIS de `any`
-- Utilise les Server Components Next.js par défaut
-- Supabase pour toutes les requêtes DB et l'Auth
+- Supabase pour la DB et l'Auth (Admins uniquement)
+- RLS : Lecture publique pour `profiles` et `jobs`. Écriture réservée aux rôles `ADMIN` et `SUPER_ADMIN`.
 - Gère les erreurs avec des try/catch et des messages explicites
-- Row Level Security (RLS) doit être pris en compte
-- Chaque fonction publique doit avoir un JSDoc
 
 ## Conventions de code
 - Maximum 300 lignes par fichier
 - Extraire la logique complexe dans des hooks custom
 - Nommer les fichiers en kebab-case
-- Utiliser des barrel exports (index.ts)
 - Styling avec Tailwind CSS et shadcn/ui
 
 ## Tests
 - Vitest pour les tests unitaires
 - Playwright pour les E2E
-- Coverage minimum : 80%
-
-## Ce qu'il ne faut JAMAIS faire
-- Ne jamais committer de secrets ou clés API
-- Ne pas utiliser console.log en production
-- Ne pas ignorer les erreurs TypeScript avec @ts-ignore
-- Ne pas créer de fichiers de plus de 300 lignes
 
 ## Commits
 - Format : `type(scope): description concise`
 - Types : feat, fix, refactor, test, docs, chore
-- Scope : le module concerné (auth, dashboard, api, jobs, events)
-- Commits atomiques : 1 feature/fix = 1 commit
+- Scope : auth, jobs, alumni, admin
 
 ## Workflows
-- **EPCT** : Explore, Plan, Code, Test pour les tâches courantes.
-- **PRP** : Product Requirement Prompt pour les grosses features ou le setup initial.
+- **EPCT** : Explore, Plan, Code, Test.
+- **PRP** : Product Requirement Prompt.

@@ -15,15 +15,16 @@ export default async function Navbar() {
         </Link>
 
         <div className="flex items-center gap-6">
-          {user && (
-            <Link href="/alumni" className="text-sm font-medium hover:text-primary transition-colors">
-              Annuaire
-            </Link>
-          )}
+          <Link href="/alumni" className="text-sm font-medium hover:text-primary transition-colors">
+            Annuaire
+          </Link>
+          <Link href="/jobs" className="text-sm font-medium hover:text-primary transition-colors">
+            Offres d'emploi
+          </Link>
           {user ? (
             <>
-              <Link href="/profile" className="text-sm font-medium hover:text-primary transition-colors">
-                Mon Profil
+              <Link href="/admin" className="text-sm font-medium text-orange-600 hover:text-orange-700 transition-colors">
+                Administration
               </Link>
               <form action={signOut}>
                 <Button variant="ghost" size="sm">
@@ -33,7 +34,7 @@ export default async function Navbar() {
             </>
           ) : (
             <Link href="/login">
-              <Button size="sm">Connexion</Button>
+              <Button size="sm" variant="outline">Admin Access</Button>
             </Link>
           )}
         </div>

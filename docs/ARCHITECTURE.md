@@ -1,35 +1,16 @@
 # Architecture — Alumni
 
 ## Vue d'ensemble
-Application de gestion d'Alumni utilisant Next.js avec une architecture basée sur l'App Router et Supabase pour tout le backend.
+Application de gestion d'Alumni avec un accès public pour la consultation et un accès restreint pour l'administration.
 
 ## Stack technique
 - **Frontend** : Next.js 15 / App Router
 - **Backend** : Supabase (Database, Auth, Storage)
-- **Base de données** : Supabase (PostgreSQL)
-- **Auth** : Supabase Auth (SSR)
-- **Styling** : Tailwind CSS + shadcn/ui
-- **Validation** : Zod
-- **Tests** : Vitest + Playwright
+- **Auth** : Supabase Auth (SSR) - Uniquement pour les Admins et Super Admin.
+- **Accès** : 
+    - Public : `/`, `/alumni`, `/jobs` (Lecture seule).
+    - Privé : `/admin/*` (Gestion des offres et rôles).
 
-## Structure du projet
-src/
-├── app/           # Routes et pages (App Router)
-├── components/    # Composants React réutilisables
-│   ├── ui/       # Composants de base (shadcn)
-│   └── features/ # Composants métier
-├── lib/          # Utilitaires Supabase client
-├── utils/        # Utilitaires Supabase server
-├── hooks/        # Hooks React personnalisés
-└── types/        # Types TypeScript partagés
-
-## Design Patterns
-- Server Components par défaut
-- Server Actions avec Supabase Server Client
-- Row Level Security (RLS) pour la protection des données
-- Formulaires gérés avec React Hook Form + Zod
-
-## Conventions
-- Nommage : camelCase pour variables/fonctions, PascalCase pour composants
-- Un composant par fichier
-- Colocation des tests si possible
+## Row Level Security (RLS)
+- `jobs` : `SELECT` pour tous (anon), `ALL` pour les rôles `ADMIN`.
+- `profiles` (Alumni) : `SELECT` pour tous.

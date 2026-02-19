@@ -1,0 +1,84 @@
+'use server'
+
+import { createClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { jobSchema } from '@/types/jobs'
+
+async function checkRole(requiredRoles: string[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !requiredRoles.includes(profile.role)) {
+    redirect('/')
+  }
+
+  return { supabase, user }
+}
+
+export async function updateRole(userId: string, newRole: string) {
+  const { supabase } = await checkRole(['SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ role: newRole })
+    .eq('id', userId)
+
+  if (error) throw new Error(error.message)
+  
+  revalidatePath('/admin/roles')
+}
+
+export async function createJob(formData: FormData) {
+  const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const rawData = {
+    title: formData.get('title'),
+    company: formData.get('company'),
+    description: formData.get('description'),
+    type: formData.get('type'),
+    location: formData.get('location'),
+    link: formData.get('link'),
+  }
+
+  const validatedData = jobSchema.safeParse(rawData)
+
+  if (!validatedData.success) {
+    throw new Error(validatedData.error.errors[0].message)
+  }
+
+  const { error } = await supabase
+    .from('jobs')
+    .insert({
+      ...validatedData.data,
+      author_id: user.id
+    })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/jobs')
+  revalidatePath('/jobs')
+  redirect('/admin/jobs')
+}
+
+export async function deleteJob(jobId: string) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('jobs')
+    .delete()
+    .eq('id', jobId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/jobs')
+  revalidatePath('/jobs')
+}

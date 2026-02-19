@@ -2,88 +2,43 @@ import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Users, Briefcase, Calendar, AlertCircle } from 'lucide-react'
+import { Users, Briefcase, Calendar } from 'lucide-react'
 
 export default async function Home() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl font-bold mb-4">Bienvenue sur Alumni MDS</h1>
-        <p className="text-muted-foreground mb-8">Rejoignez le réseau des anciens étudiants de l'école.</p>
-        <Link href="/login">
-          <Button size="lg">Se connecter pour commencer</Button>
-        </Link>
-      </div>
-    )
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  const isProfileComplete = profile?.first_name && profile?.last_name && profile?.degree
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold">Bonjour, {profile?.first_name || 'Alumni'} 👋</h1>
-        <p className="text-muted-foreground">Ravi de vous revoir sur la plateforme.</p>
+    <div className="container mx-auto px-4 py-16">
+      <header className="mb-12 text-center">
+        <h1 className="text-5xl font-bold italic uppercase mb-4 text-primary">Alumni MDS</h1>
+        <p className="text-xl text-muted-foreground">Le réseau professionnel des anciens étudiants.</p>
       </header>
 
-      {!isProfileComplete && (
-        <Card className="border-amber-200 bg-amber-50 mb-8">
-          <CardContent className="flex items-center gap-4 pt-6">
-            <AlertCircle className="h-6 w-6 text-amber-600" />
-            <div className="flex-1">
-              <p className="font-medium text-amber-900">Votre profil est incomplet</p>
-              <p className="text-sm text-amber-700">Complétez vos informations pour être visible dans l'annuaire.</p>
-            </div>
-            <Link href="/profile">
-              <Button size="sm" variant="outline" className="border-amber-300 text-amber-900 hover:bg-amber-100">
-                Compléter mon profil
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
+      <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <Link href="/alumni">
+          <Card className="hover:border-primary transition-all hover:shadow-lg cursor-pointer h-full border-2">
+            <CardHeader>
+              <Users className="h-10 w-10 text-primary mb-4" />
+              <CardTitle className="text-2xl">Annuaire</CardTitle>
+              <CardDescription className="text-base">Retrouvez vos anciens camarades et développez votre réseau.</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card className="hover:border-primary transition-colors cursor-pointer">
-          <CardHeader>
-            <Users className="h-8 w-8 text-primary mb-2" />
-            <CardTitle>Annuaire</CardTitle>
-            <CardDescription>Retrouvez vos anciens camarades et développez votre réseau.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="link" className="px-0">Consulter l'annuaire →</Button>
-          </CardContent>
-        </Card>
+        <Link href="/jobs">
+          <Card className="hover:border-primary transition-all hover:shadow-lg cursor-pointer h-full border-2">
+            <CardHeader>
+              <Briefcase className="h-10 w-10 text-primary mb-4" />
+              <CardTitle className="text-2xl">Jobs</CardTitle>
+              <CardDescription className="text-base">Consultez les offres d'emploi et de stage exclusives au réseau.</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
 
-        <Card className="hover:border-primary transition-colors cursor-pointer">
+        <Card className="opacity-60 h-full border-2 border-dashed">
           <CardHeader>
-            <Briefcase className="h-8 w-8 text-primary mb-2" />
-            <CardTitle>Offres d'emploi</CardTitle>
-            <CardDescription>Consultez les dernières annonces CDI, CDD et Freelance.</CardDescription>
+            <Calendar className="h-10 w-10 text-muted-foreground mb-4" />
+            <CardTitle className="text-2xl">Événements</CardTitle>
+            <CardDescription className="text-base">Restez informé des prochains rassemblements (Prochainement).</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button variant="link" className="px-0">Voir les annonces →</Button>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:border-primary transition-colors cursor-pointer">
-          <CardHeader>
-            <Calendar className="h-8 w-8 text-primary mb-2" />
-            <CardTitle>Événements</CardTitle>
-            <CardDescription>Restez informé des prochains rassemblements de l'école.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="link" className="px-0">Agenda des événements →</Button>
-          </CardContent>
         </Card>
       </div>
     </div>
