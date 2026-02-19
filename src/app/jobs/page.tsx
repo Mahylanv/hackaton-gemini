@@ -1,21 +1,69 @@
 import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SearchInput } from '@/components/ui/search-input'
+import { FilterSelect } from '@/components/ui/filter-select'
 import { Briefcase, MapPin, Clock, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { Suspense } from 'react'
 
-export default async function JobsPage() {
+export default async function JobsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const supabase = await createClient()
+  const params = await searchParams
+  const query = params.query as string || ''
+  const type = params.type as string || ''
   
-  const { data: jobs } = await supabase
+  let supabaseQuery = supabase
     .from('jobs')
     .select('*')
     .order('created_at', { ascending: false })
 
+  if (query) {
+    supabaseQuery = supabaseQuery.or(`title.ilike.%${query}%,company.ilike.%${query}%,description.ilike.%${query}%`)
+  }
+
+  if (type) {
+    supabaseQuery = supabaseQuery.eq('type', type)
+  }
+
+  const { data: jobs } = await supabaseQuery
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <header className="mb-12">
-        <h1 className="text-4xl font-bold italic uppercase mb-2">Offres d'emploi</h1>
-        <p className="text-muted-foreground text-lg">Découvrez les opportunités partagées par le réseau MDS.</p>
+      <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-4xl font-bold italic uppercase mb-2">Offres d'emploi</h1>
+          <p className="text-muted-foreground text-lg">Découvrez les opportunités du réseau MDS.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <Suspense fallback={<div className="w-64 h-10 bg-muted animate-pulse rounded-md" />}>
+            <SearchInput placeholder="Poste, entreprise..." />
+          </Suspense>
+          
+          <FilterSelect 
+            name="type"
+            placeholder="Tous types"
+            defaultValue={type}
+            options={[
+              { label: 'CDI', value: 'CDI' },
+              { label: 'CDD', value: 'CDD' },
+              { label: 'Stage', value: 'STAGE' },
+              { label: 'Alternance', value: 'ALTERNANCE' },
+              { label: 'Freelance', value: 'FREELANCE' },
+            ]}
+          />
+
+          {(query || type) && (
+            <Link href="/jobs">
+              <Button variant="ghost">Effacer</Button>
+            </Link>
+          )}
+        </div>
       </header>
 
       <div className="grid gap-6">
