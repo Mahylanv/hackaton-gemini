@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { jobSchema } from '@/types/jobs'
+import { eventSchema } from '@/types/events'
 
 async function checkRole(requiredRoles: string[]) {
   const supabase = await createClient()
@@ -81,4 +82,51 @@ export async function deleteJob(jobId: string) {
 
   revalidatePath('/admin/jobs')
   revalidatePath('/jobs')
+}
+
+export async function createEvent(formData: FormData) {
+  const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const rawData = {
+    title: formData.get('title'),
+    description: formData.get('description'),
+    date: formData.get('date'),
+    start_time: formData.get('start_time'),
+    end_time: formData.get('end_time'),
+    type: formData.get('type'),
+    location: formData.get('location'),
+  }
+
+  const validatedData = eventSchema.safeParse(rawData)
+
+  if (!validatedData.success) {
+    throw new Error(validatedData.error.errors[0].message)
+  }
+
+  const { error } = await supabase
+    .from('events')
+    .insert({
+      ...validatedData.data,
+      author_id: user.id
+    })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/events')
+  revalidatePath('/events')
+  redirect('/admin/events')
+}
+
+export async function deleteEvent(eventId: string) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', eventId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/events')
+  revalidatePath('/events')
 }

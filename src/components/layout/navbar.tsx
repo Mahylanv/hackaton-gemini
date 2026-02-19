@@ -21,6 +21,9 @@ export default async function Navbar() {
           <Link href="/jobs" className="text-sm font-medium hover:text-primary transition-colors">
             Offres d'emploi
           </Link>
+          <Link href="/events" className="text-sm font-medium hover:text-primary transition-colors">
+            Événements
+          </Link>
           {user ? (
             <>
               <Link href="/admin" className="text-sm font-medium text-orange-600 hover:text-orange-700 transition-colors">
