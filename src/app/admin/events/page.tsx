@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { deleteEvent } from '@/app/admin/actions'
 import { EventCreationForm } from '@/components/features/events/EventCreationForm'
+import { EventEditDialog } from '@/components/features/events/EventEditDialog'
 import { redirect } from 'next/navigation'
 import { Calendar, MapPin, Clock } from 'lucide-react'
 
@@ -56,13 +57,16 @@ export default async function AdminEventsPage() {
                       <h3 className="font-bold">{event.title}</h3>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {event.date}</span>
-                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {event.start_time} - {event.end_time}</span>
+                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {event.start_time.substring(0, 5)} - {event.end_time.substring(0, 5)}</span>
                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location}</span>
                       </div>
                     </div>
-                    <form action={deleteEvent.bind(null, event.id)}>
-                      <Button variant="destructive" size="sm">Annuler</Button>
-                    </form>
+                    <div className="flex gap-2">
+                      <EventEditDialog event={event} />
+                      <form action={deleteEvent.bind(null, event.id)}>
+                        <Button variant="destructive" size="sm">Annuler</Button>
+                      </form>
+                    </div>
                   </div>
                 ))}
                 {events?.length === 0 && (

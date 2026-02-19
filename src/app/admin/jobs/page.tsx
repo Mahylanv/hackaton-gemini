@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { deleteJob } from '@/app/admin/actions'
 import { JobCreationForm } from '@/components/features/jobs/JobCreationForm'
+import { JobEditDialog } from '@/components/features/jobs/JobEditDialog'
 import { redirect } from 'next/navigation'
 
 export default async function AdminJobsPage() {
@@ -55,9 +56,12 @@ export default async function AdminJobsPage() {
                       <h3 className="font-bold">{job.title}</h3>
                       <p className="text-sm text-muted-foreground">{job.company} • {job.type} • {job.location}</p>
                     </div>
-                    <form action={deleteJob.bind(null, job.id)}>
-                      <Button variant="destructive" size="sm">Supprimer</Button>
-                    </form>
+                    <div className="flex gap-2">
+                      <JobEditDialog job={job} />
+                      <form action={deleteJob.bind(null, job.id)}>
+                        <Button variant="destructive" size="sm">Supprimer</Button>
+                      </form>
+                    </div>
                   </div>
                 ))}
                 {jobs?.length === 0 && (

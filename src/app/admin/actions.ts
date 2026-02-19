@@ -84,6 +84,37 @@ export async function deleteJob(jobId: string) {
   revalidatePath('/jobs')
 }
 
+export async function updateJob(jobId: string, formData: FormData) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const rawData = {
+    title: formData.get('title'),
+    company: formData.get('company'),
+    description: formData.get('description'),
+    type: formData.get('type'),
+    location: formData.get('location'),
+    link: formData.get('link'),
+  }
+
+  const validatedData = jobSchema.safeParse(rawData)
+
+  if (!validatedData.success) {
+    throw new Error(validatedData.error.errors[0].message)
+  }
+
+  const { error } = await supabase
+    .from('jobs')
+    .update({
+      ...validatedData.data,
+    })
+    .eq('id', jobId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/jobs')
+  revalidatePath('/jobs')
+}
+
 export async function createEvent(formData: FormData) {
   const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
 
@@ -123,6 +154,38 @@ export async function deleteEvent(eventId: string) {
   const { error } = await supabase
     .from('events')
     .delete()
+    .eq('id', eventId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/events')
+  revalidatePath('/events')
+}
+
+export async function updateEvent(eventId: string, formData: FormData) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const rawData = {
+    title: formData.get('title'),
+    description: formData.get('description'),
+    date: formData.get('date'),
+    start_time: formData.get('start_time'),
+    end_time: formData.get('end_time'),
+    type: formData.get('type'),
+    location: formData.get('location'),
+  }
+
+  const validatedData = eventSchema.safeParse(rawData)
+
+  if (!validatedData.success) {
+    throw new Error(validatedData.error.errors[0].message)
+  }
+
+  const { error } = await supabase
+    .from('events')
+    .update({
+      ...validatedData.data,
+    })
     .eq('id', eventId)
 
   if (error) throw new Error(error.message)
