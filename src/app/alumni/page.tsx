@@ -12,12 +12,7 @@ export default async function AlumniDirectoryPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
+  
   const params = await searchParams
   const query = params.query as string || ''
   const year = params.year as string || ''

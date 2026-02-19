@@ -6,8 +6,11 @@ document.getElementById('startScraping').addEventListener('click', async () => {
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  if (!tab.url.includes("linkedin.com/school")) {
-    status.innerText = "Erreur : Allez sur la page Alumni de LinkedIn.";
+  const isAlumniPage = tab.url.includes("linkedin.com/school");
+  const isSearchPage = tab.url.includes("linkedin.com/search/results/people");
+
+  if (!isAlumniPage && !isSearchPage) {
+    status.innerText = "Erreur : Allez sur la page Alumni ou les résultats de recherche LinkedIn.";
     return;
   }
 
@@ -31,10 +34,11 @@ document.getElementById('startScraping').addEventListener('click', async () => {
 
 // Cette fonction est injectée dans la page LinkedIn
 async function scrapeLinkedInAlumni(apiKey) {
-  const cards = document.querySelectorAll('.org-people-profile-card');
   const alumniData = [];
 
-  cards.forEach(card => {
+  // 1. Essayer les sélecteurs de la page "Alumni"
+  const alumniCards = document.querySelectorAll('.org-people-profile-card');
+  alumniCards.forEach(card => {
     const name = card.querySelector('.lt-line-clamp--single-line')?.innerText?.trim();
     const linkedinUrl = card.querySelector('a[data-test-app-is-alumni-card]')?.href;
     const profileImageUrl = card.querySelector('img')?.src;
@@ -50,6 +54,32 @@ async function scrapeLinkedInAlumni(apiKey) {
       });
     }
   });
+
+  // 2. Essayer les sélecteurs de la page "Search Results" (si rien trouvé avant)
+  if (alumniData.length === 0) {
+    const searchResultItems = document.querySelectorAll('.reusable-search__result-container');
+    searchResultItems.forEach(item => {
+      const nameElement = item.querySelector('.entity-result__title-text a span[aria-hidden="true"]');
+      const linkElement = item.querySelector('.entity-result__title-text a');
+      const imgElement = item.querySelector('.entity-result__universal-image img');
+      const degreeElement = item.querySelector('.entity-result__primary-subtitle');
+
+      const name = nameElement?.innerText?.trim();
+      const linkedinUrl = linkElement?.href;
+      const profileImageUrl = imgElement?.src;
+      const degreeInfo = degreeElement?.innerText?.trim();
+
+      if (name && linkedinUrl) {
+        alumniData.push({
+          fullName: name,
+          linkedinUrl: linkedinUrl.split('?')[0],
+          profileImageUrl: profileImageUrl,
+          degree: degreeInfo || "Alumni MyDigitalSchool",
+          gradYear: 2024
+        });
+      }
+    });
+  }
 
   if (alumniData.length === 0) return { error: "Aucun profil trouvé." };
 
