@@ -1,10 +1,16 @@
 import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SearchInput } from '@/components/ui/search-input'
 import { updateRole } from '@/app/admin/actions'
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default async function RoleManagementPage() {
+export default async function RoleManagementPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -20,18 +26,33 @@ export default async function RoleManagementPage() {
     redirect('/admin')
   }
 
-  const { data: allProfiles } = await supabase
+  const params = await searchParams
+  const query = params.query as string || ''
+
+  let supabaseQuery = supabase
     .from('profiles')
     .select('*')
     .order('email')
 
+  if (query) {
+    supabaseQuery = supabaseQuery.or(`email.ilike.%${query}%,first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
+  }
+
+  const { data: allProfiles } = await supabaseQuery
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Gestion des Rôles</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-bold italic uppercase">Gestion des Rôles</h1>
+        
+        <Suspense fallback={<div className="w-full md:w-64 h-10 bg-muted animate-pulse rounded-md" />}>
+          <SearchInput placeholder="Email, nom ou prénom..." />
+        </Suspense>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Utilisateurs inscrits</CardTitle>
+          <CardTitle>Utilisateurs inscrits ({allProfiles?.length || 0})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="relative overflow-x-auto">
@@ -46,7 +67,7 @@ export default async function RoleManagementPage() {
               </thead>
               <tbody>
                 {allProfiles?.map((profile) => (
-                  <tr key={profile.id} className="border-b">
+                  <tr key={profile.id} className="border-b hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4 font-medium">{profile.email}</td>
                     <td className="px-6 py-4">{profile.first_name} {profile.last_name}</td>
                     <td className="px-6 py-4">
@@ -71,6 +92,13 @@ export default async function RoleManagementPage() {
                     </td>
                   </tr>
                 ))}
+                {allProfiles?.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                      Aucun utilisateur trouvé.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
