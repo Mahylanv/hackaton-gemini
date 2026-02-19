@@ -2,7 +2,6 @@ import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { LinkedInLogoIcon } from '@radix-ui/react-icons'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -12,18 +11,13 @@ export default async function AlumniDirectoryPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
+  
   const params = await searchParams
   const query = params.query as string || ''
   const year = params.year as string || ''
 
   let supabaseQuery = supabase
-    .from('profiles')
+    .from('alumni')
     .select('*')
     .order('last_name', { ascending: true })
 
