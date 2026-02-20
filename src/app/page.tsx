@@ -8,7 +8,7 @@ export default async function Home() {
   return (
     <div className="relative flex-1 flex flex-col">
       {/* Background Pattern */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50" />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] opacity-50" />
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 pt-24 pb-16 text-center">

@@ -77,7 +77,7 @@ export default async function AlumniDirectoryPage({
               const isNotFound = profile.degree === 'Parcours non trouvé';
 
               return (
-                <Card key={profile.id} className="group relative bg-white border-2 transition-all duration-500 hover:border-blue-600 hover:shadow-2xl hover:-translate-y-1 rounded-[2rem] overflow-hidden flex flex-col">
+                <Card key={profile.id} className="group relative bg-white border-2 transition-all duration-500 hover:border-blue-600 hover:shadow-2xl hover:-translate-y-1 overflow-hidden flex flex-col">
                   {/* Status Badge */}
                   <div className="absolute top-4 right-4 z-10">
                     {isVerified && (
