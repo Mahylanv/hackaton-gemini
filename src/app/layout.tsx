@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Alumni MDS",
-  description: "Plateforme des anciens étudiants",
+  title: "MYDIGITALUMNI — Le réseau des diplômés MDS",
+  description: "Plateforme officielle des anciens étudiants.",
 };
 
 export default function RootLayout({

@@ -2,9 +2,10 @@ import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
-import { updateRole } from '@/app/admin/actions'
+import { updateRole, deleteUser } from '@/app/admin/actions'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
+import { Trash2 } from 'lucide-react'
 
 export default async function RoleManagementPage({
   searchParams,
@@ -41,7 +42,7 @@ export default async function RoleManagementPage({
   const { data: allProfiles } = await supabaseQuery
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <h1 className="text-3xl font-bold italic uppercase">Gestion des Rôles</h1>
         
@@ -51,7 +52,7 @@ export default async function RoleManagementPage({
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pt-6">
           <CardTitle>Utilisateurs inscrits ({allProfiles?.length || 0})</CardTitle>
         </CardHeader>
         <CardContent>
@@ -86,6 +87,12 @@ export default async function RoleManagementPage({
                           </form>
                           <form action={updateRole.bind(null, profile.id, 'USER')}>
                             <Button size="sm" variant="outline" disabled={profile.role === 'USER'}>User</Button>
+                          </form>
+                          <form action={deleteUser.bind(null, profile.id)}>
+                            <Button size="sm" variant="destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Supprimer
+                            </Button>
                           </form>
                         </div>
                       )}

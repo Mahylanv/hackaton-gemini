@@ -16,8 +16,11 @@ export default async function LoginPage({
     <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold italic uppercase">Alumni MDS</CardTitle>
-          <CardDescription>Connectez-vous ou créez un compte</CardDescription>
+          <CardTitle className="text-3xl font-black italic uppercase tracking-tighter">
+            <span className="text-secondary">MYDIGIT</span>
+            <span className="text-primary">ALUMNI</span>
+          </CardTitle>
+          <CardDescription>Accès réservé à l'administration</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4">
@@ -35,10 +38,10 @@ export default async function LoginPage({
               <Input id="password" name="password" type="password" required />
             </div>
             <div className="flex gap-4 pt-2">
-              <Button formAction={login} className="flex-1">
+              <Button formAction={login} className="flex-1 font-bold">
                 Connexion
               </Button>
-              <Button formAction={signup} variant="outline" className="flex-1">
+              <Button formAction={signup} variant="outline" className="flex-1 font-bold text-secondary">
                 S'inscrire
               </Button>
             </div>
