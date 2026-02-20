@@ -75,7 +75,16 @@ export async function fetchAlumniFromLinkedIn(): Promise<AlumniData[]> {
   
   const result = await response.json();
   
-  return result.people.map((p: any) => ({
+  interface ApolloPerson {
+    first_name: string;
+    last_name: string;
+    linkedin_url: string;
+    photo_url?: string;
+    title?: string;
+    education?: { end_year?: number }[];
+  }
+
+  return result.people.map((p: ApolloPerson) => ({
     fullName: p.first_name + ' ' + p.last_name,
     linkedinUrl: p.linkedin_url,
     profileImageUrl: p.photo_url,
@@ -101,6 +110,29 @@ export function generateLinkedInUrl(firstName: string, lastName: string): string
 
   const slug = `${slugify(firstName)}-${slugify(lastName)}`;
   return `https://www.linkedin.com/in/${slug}/`;
+}
+
+/**
+ * Nettoie et dédoublonne une liste de diplômes tout en gardant les noms complets.
+ */
+export function deduplicateDegrees(degrees: string[]): string {
+  if (degrees.length === 0) return "Parcours non trouvé";
+  
+  // Supprimer les doublons exacts et nettoyer
+  const unique = Array.from(new Set(degrees.map(d => d.trim()))).filter(d => d.length > 0);
+  
+  if (unique.length === 0) return "Parcours non trouvé";
+  
+  // Filtrage intelligent : si un diplôme court est déjà contenu dans un diplôme long, on le retire
+  // Exemple: "Bachelor" est retiré si "Bachelor Développeur Web" existe
+  const sorted = unique.sort((a, b) => b.length - a.length);
+  const final = sorted.filter((deg, idx) => {
+    return !sorted.some((other, otherIdx) => 
+      idx !== otherIdx && other.toLowerCase().includes(deg.toLowerCase())
+    );
+  });
+
+  return final.reverse().join(' / ');
 }
 
 /**

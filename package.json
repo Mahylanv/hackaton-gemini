@@ -3,13 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--dns-result-order=ipv4first' next dev -p 3001",
+    "dev": "NODE_OPTIONS='--dns-result-order=ipv4first' next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",
-    "db:apply": "node scripts/migrate.mjs",
-    "migrate": "npm run db:apply",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
