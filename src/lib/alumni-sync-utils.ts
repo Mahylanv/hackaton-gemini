@@ -85,6 +85,25 @@ export async function fetchAlumniFromLinkedIn(): Promise<AlumniData[]> {
 }
 
 /**
+ * Génère une URL LinkedIn probable à partir du prénom et du nom.
+ * Nettoie les accents et remplace les espaces par des tirets.
+ */
+export function generateLinkedInUrl(firstName: string, lastName: string): string {
+  const slugify = (text: string) =>
+    text
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w-]+/g, '');
+
+  const slug = `${slugify(firstName)}-${slugify(lastName)}`;
+  return `https://www.linkedin.com/in/${slug}/`;
+}
+
+/**
  * Synchronise une liste d'alumni avec la base de données.
  */
 export async function syncAlumniData(supabase: SupabaseClient, data: AlumniData[]) {

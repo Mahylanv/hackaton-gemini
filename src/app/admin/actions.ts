@@ -1,16 +1,20 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { generateLinkedInUrl } from '@/lib/alumni-sync-utils'
+import * as XLSX from 'xlsx'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { jobSchema } from '@/types/jobs'
-import { eventSchema } from '@/types/events'
+import { exec, spawn } from 'child_process'
+import { promisify } from 'util'
 
-async function checkRole(requiredRoles: string[]) {
+const execPromise = promisify(exec)
+
+export async function importExcelData(formData: FormData) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
   
-  if (!user) redirect('/login')
+  // Vérification du rôle Admin/SuperAdmin
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -18,178 +22,120 @@ async function checkRole(requiredRoles: string[]) {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !requiredRoles.includes(profile.role)) {
-    redirect('/')
+  if (!profile || (profile.role !== 'ADMIN' && profile.role !== 'SUPER_ADMIN')) {
+    return { error: 'Accès réservé aux administrateurs' }
   }
 
-  return { supabase, user }
+  const file = formData.get('file') as File
+  if (!file) return { error: 'Aucun fichier fourni' }
+
+  try {
+    let workbook;
+    
+    if (file.name.endsWith('.csv')) {
+      const text = await file.text()
+      workbook = XLSX.read(text, { type: 'string' })
+    } else {
+      const bytes = await file.arrayBuffer()
+      workbook = XLSX.read(bytes, { type: 'array' })
+    }
+    
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    
+    const rawData = XLSX.utils.sheet_to_json(worksheet) as any[]
+    
+    const alumniToImport = rawData.map(row => {
+      const firstName = row.Prenom || row.prenom || row['First Name'] || row.firstname || ''
+      const lastName = row.Nom || row.nom || row['Last Name'] || row.lastname || ''
+      let linkedinUrl = row.Linkedin || row.linkedin || row['LinkedIn URL'] || ''
+      
+      if (!firstName || !lastName) return null
+
+      if (!linkedinUrl) {
+        linkedinUrl = generateLinkedInUrl(firstName, lastName)
+      } else {
+        linkedinUrl = linkedinUrl.split('?')[0]
+        if (!linkedinUrl.endsWith('/')) linkedinUrl += '/'
+      }
+
+      return {
+        first_name: firstName,
+        last_name: lastName,
+        linkedin_url: linkedinUrl,
+        degree: 'Importé via Excel',
+        updated_at: new Date().toISOString()
+      }
+    }).filter(Boolean)
+
+    if (alumniToImport.length === 0) {
+      return { error: 'Aucune donnée valide trouvée dans le fichier' }
+    }
+
+    const { error } = await supabase
+      .from('alumni')
+      .upsert(alumniToImport, { onConflict: 'linkedin_url' })
+
+    if (error) throw error
+
+    revalidatePath('/alumni')
+    return { success: true, count: alumniToImport.length }
+
+  } catch (err: any) {
+    return { error: `Erreur : ${err.message}` }
+  }
 }
 
-export async function updateRole(userId: string, newRole: string) {
-  const { supabase } = await checkRole(['SUPER_ADMIN'])
+/**
+ * Lance le script d'enrichissement LinkedIn en arrière-plan.
+ */
+export async function startEnrichmentScan() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({ role: newRole })
-    .eq('id', userId)
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || (profile.role !== 'ADMIN' && profile.role !== 'SUPER_ADMIN')) {
+    return { error: 'Accès refusé' }
+  }
 
-  if (error) throw new Error(error.message)
+  console.log(`\x1b[35m[SERVER-ACTION]\x1b[0m Lancement du scan d'enrichissement...`);
+
+  try {
+    const child = spawn('npx', ['tsx', 'scripts/enrich-profiles.ts'], {
+      shell: true,
+      stdio: 'inherit'
+    });
+
+    child.on('error', (err: any) => {
+      console.error(`\x1b[31m[SCAN ERROR]\x1b[0m ${err.message}`);
+    });
+
+    return { success: true, message: 'Le scan a été lancé. Une fenêtre LinkedIn va s\'ouvrir.' }
+  } catch (err: any) {
+    return { error: `Erreur : ${err.message}` }
+  }
+}
+
+/**
+ * Récupère la progression actuelle de l'enrichissement.
+ */
+export async function getEnrichmentProgress() {
+  const supabase = await createClient()
   
-  revalidatePath('/admin/roles')
-}
+  const { count: total } = await supabase
+    .from('alumni')
+    .select('*', { count: 'exact', head: true })
 
-export async function createJob(formData: FormData) {
-  const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+  const { count: processed } = await supabase
+    .from('alumni')
+    .select('*', { count: 'exact', head: true })
+    .not('degree', 'eq', 'Importé via Excel')
+    .not('degree', 'is', null)
 
-  const rawData = {
-    title: formData.get('title'),
-    company: formData.get('company'),
-    description: formData.get('description'),
-    type: formData.get('type'),
-    location: formData.get('location'),
-    link: formData.get('link'),
+  return {
+    total: total || 0,
+    processed: processed || 0,
+    percentage: total ? Math.round((processed! / total) * 100) : 0
   }
-
-  const validatedData = jobSchema.safeParse(rawData)
-
-  if (!validatedData.success) {
-    throw new Error(validatedData.error.errors[0].message)
-  }
-
-  const { error } = await supabase
-    .from('jobs')
-    .insert({
-      ...validatedData.data,
-      author_id: user.id
-    })
-
-  if (error) throw new Error(error.message)
-
-  revalidatePath('/admin/jobs')
-  revalidatePath('/jobs')
-  redirect('/admin/jobs')
-}
-
-export async function deleteJob(jobId: string) {
-  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
-
-  const { error } = await supabase
-    .from('jobs')
-    .delete()
-    .eq('id', jobId)
-
-  if (error) throw new Error(error.message)
-
-  revalidatePath('/admin/jobs')
-  revalidatePath('/jobs')
-}
-
-export async function updateJob(jobId: string, formData: FormData) {
-  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
-
-  const rawData = {
-    title: formData.get('title'),
-    company: formData.get('company'),
-    description: formData.get('description'),
-    type: formData.get('type'),
-    location: formData.get('location'),
-    link: formData.get('link'),
-  }
-
-  const validatedData = jobSchema.safeParse(rawData)
-
-  if (!validatedData.success) {
-    throw new Error(validatedData.error.errors[0].message)
-  }
-
-  const { error } = await supabase
-    .from('jobs')
-    .update({
-      ...validatedData.data,
-    })
-    .eq('id', jobId)
-
-  if (error) throw new Error(error.message)
-
-  revalidatePath('/admin/jobs')
-  revalidatePath('/jobs')
-}
-
-export async function createEvent(formData: FormData) {
-  const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
-
-  const rawData = {
-    title: formData.get('title'),
-    description: formData.get('description'),
-    date: formData.get('date'),
-    start_time: formData.get('start_time'),
-    end_time: formData.get('end_time'),
-    type: formData.get('type'),
-    location: formData.get('location'),
-  }
-
-  const validatedData = eventSchema.safeParse(rawData)
-
-  if (!validatedData.success) {
-    throw new Error(validatedData.error.errors[0].message)
-  }
-
-  const { error } = await supabase
-    .from('events')
-    .insert({
-      ...validatedData.data,
-      author_id: user.id
-    })
-
-  if (error) throw new Error(error.message)
-
-  revalidatePath('/admin/events')
-  revalidatePath('/events')
-  redirect('/admin/events')
-}
-
-export async function deleteEvent(eventId: string) {
-  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
-
-  const { error } = await supabase
-    .from('events')
-    .delete()
-    .eq('id', eventId)
-
-  if (error) throw new Error(error.message)
-
-  revalidatePath('/admin/events')
-  revalidatePath('/events')
-}
-
-export async function updateEvent(eventId: string, formData: FormData) {
-  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
-
-  const rawData = {
-    title: formData.get('title'),
-    description: formData.get('description'),
-    date: formData.get('date'),
-    start_time: formData.get('start_time'),
-    end_time: formData.get('end_time'),
-    type: formData.get('type'),
-    location: formData.get('location'),
-  }
-
-  const validatedData = eventSchema.safeParse(rawData)
-
-  if (!validatedData.success) {
-    throw new Error(validatedData.error.errors[0].message)
-  }
-
-  const { error } = await supabase
-    .from('events')
-    .update({
-      ...validatedData.data,
-    })
-    .eq('id', eventId)
-
-  if (error) throw new Error(error.message)
-
-  revalidatePath('/admin/events')
-  revalidatePath('/events')
 }
