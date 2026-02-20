@@ -7,10 +7,30 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+const REALISTIC_JOBS = [
+  { title: "Développeur Front-End", company: "Publicis Sapient", logo: "https://logo.clearbit.com/publicis.sapient.com" },
+  { title: "Chef de Projet Digital", company: "Capgemini", logo: "https://logo.clearbit.com/capgemini.com" },
+  { title: "UX/UI Designer", company: "Doctolib", logo: "https://logo.clearbit.com/doctolib.fr" },
+  { title: "Product Owner", company: "Decathlon Digital", logo: "https://logo.clearbit.com/decathlon.fr" },
+  { title: "Développeur Fullstack", company: "Scalian", logo: "https://logo.clearbit.com/scalian.com" },
+  { title: "Consultant SEO", company: "Resoneo", logo: "https://logo.clearbit.com/resoneo.com" },
+  { title: "Traffic Manager", company: "Gambit", logo: "https://logo.clearbit.com/gambit.com" },
+  { title: "Alternant Développeur", company: "SNCF Connect", logo: "https://logo.clearbit.com/sncf-connect.com" },
+  { title: "Freelance Webdesigner", company: "Indépendant", logo: null }, // Pas de logo pour freelance
+  { title: "Data Analyst", company: "Carrefour", logo: "https://logo.clearbit.com/carrefour.com" }
+];
+
+const DEGREES = [
+  "Bachelor Développeur Web",
+  "Bachelor Webmarketing & Social Media",
+  "MBA Expert UI/UX Design",
+  "MBA Directeur Artistique Digital",
+  "MBA Développeur Full-Stack",
+  "Master Marketing Digital"
+];
+
 async function simulateRobot() {
-  console.log(`
-\x1b[44m\x1b[37m SIMULATION : ROBOT DE TEST (SANS LINKEDIN) \x1b[0m
-`);
+  console.log(`\n\x1b[44m\x1b[37m 🚀 SIMULATION : DONNÉES RÉALISTES MYDIGITALSCHOOL \x1b[0m\n`);
 
   const { data: alumni, error } = await supabase
     .from('alumni')
@@ -22,40 +42,36 @@ async function simulateRobot() {
     return;
   }
 
-  const fakeJobs = [
-    { title: "Développeur Full Stack", company: "Google", logo: "https://logo.clearbit.com/google.com" },
-    { title: "Product Designer", company: "Airbnb", logo: "https://logo.clearbit.com/airbnb.com" },
-    { title: "Data Scientist", company: "Microsoft", logo: "https://logo.clearbit.com/microsoft.com" },
-    { title: "Chef de Projet Digital", company: "Orange", logo: "https://logo.clearbit.com/orange.fr" }
-  ];
-
   for (let i = 0; i < alumni.length; i++) {
     const person = alumni[i];
-    const fakeData = fakeJobs[i % fakeJobs.length];
     
-    console.log(`\x1b[35m[SIMUL] Scan de ${person.first_name} ${person.last_name}...\x1b[0m`);
+    // Sélection aléatoire cohérente
+    const jobInfo = REALISTIC_JOBS[Math.floor(Math.random() * REALISTIC_JOBS.length)];
+    const degreeInfo = DEGREES[Math.floor(Math.random() * DEGREES.length)];
+    const isPlaced = Math.random() > 0.2; // 80% de chance d'être en poste
+
+    console.log(`\x1b[36m[SIMUL] Enrichment de ${person.first_name} ${person.last_name}...\x1b[0m`);
     
-    // On simule un temps de chargement de 3 secondes
-    await new Promise(r => setTimeout(r, 3000));
+    // Simulation délai réseau (rapide pour le test)
+    await new Promise(r => setTimeout(r, 800));
 
     const { error: updateError } = await supabase
       .from('alumni')
       .update({
-        current_job_title: fakeData.title,
-        current_company: fakeData.company,
-        company_logo: fakeData.logo,
-        avatar_url: `https://i.pravatar.cc/150?u=${person.id}`, // Fausse photo
-        degree: "Bachelor Digital / Master Expert en Stratégie Digitale",
+        current_job_title: isPlaced ? jobInfo.title : null,
+        current_company: isPlaced ? jobInfo.company : null,
+        company_logo: isPlaced ? jobInfo.logo : null,
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${person.id}&backgroundColor=b6e3f4`,
+        degree: degreeInfo,
         updated_at: new Date().toISOString()
       })
       .eq('id', person.id);
 
-    if (updateError) console.error(`  \x1b[31m[ERREUR BDD] ${updateError.message}\x1b[0m`);
-    else console.log(`  \x1b[32m[OK] Données simulées envoyées pour ${person.first_name}.\x1b[0m`);
+    if (updateError) console.error(`  \x1b[31m[ERREUR] ${updateError.message}\x1b[0m`);
+    else console.log(`  \x1b[32m[OK] ${isPlaced ? `${jobInfo.title} chez ${jobInfo.company}` : "En recherche"}\x1b[0m`);
   }
 
-  console.log(`
-\x1b[42m SIMULATION TERMINÉE \x1b[0m`);
+  console.log(`\n\x1b[42m BASE DE DONNÉES ENRICHIE \x1b[0m`);
 }
 
 simulateRobot();

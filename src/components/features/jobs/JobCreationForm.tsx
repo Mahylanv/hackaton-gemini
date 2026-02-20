@@ -6,6 +6,7 @@ import { jobSchema, JobInput } from '@/types/jobs'
 import { createJob } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useState } from 'react'
@@ -114,9 +115,13 @@ export function JobCreationForm() {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description courte</FormLabel>
+              <FormLabel>Description du poste</FormLabel>
               <FormControl>
-                <Input placeholder="Description du poste..." {...field} />
+                <Textarea 
+                  placeholder="Détails de l'offre..." 
+                  className="min-h-[120px]"
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

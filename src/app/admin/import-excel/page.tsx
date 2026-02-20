@@ -1,28 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { 
-  FileSpreadsheet, 
-  Upload, 
-  CheckCircle2, 
-  AlertCircle, 
-  ArrowLeft, 
-  Zap, 
-  Loader2, 
-  BarChart3, 
-  Linkedin, 
-  Mail, 
-  ExternalLink,
-  RefreshCcw,
-  User,
-  Building2,
-  GraduationCap,
-  Calendar,
-  CheckCircle,
-  X
+  FileSpreadsheet, Upload, CheckCircle2, AlertCircle, ArrowLeft, Zap, Loader2, 
+  BarChart3, Linkedin, Mail, Search, Filter, Briefcase, GraduationCap, Users 
 } from 'lucide-react'
 import { importExcelData, startEnrichmentScan, getEnrichmentProgress, getAlumniList } from '../actions'
 import Link from 'next/link'
@@ -50,6 +34,10 @@ export default function ImportExcelPage() {
   const [alumni, setAlumni] = useState<AlumniProfile[]>([])
   const [progress, setProgress] = useState({ processed: 0, total: 0, percentage: 0 })
   const [estimatedTime, setEstimatedTime] = useState<string | null>(null)
+  
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'pending'>('all')
 
   const fetchAlumni = useCallback(async () => {
     try {
@@ -60,10 +48,9 @@ export default function ImportExcelPage() {
     }
   }, [])
 
-  useEffect(() => {
-    fetchAlumni();
-  }, [fetchAlumni])
+  useEffect(() => { fetchAlumni() }, [fetchAlumni])
 
+  // Polling logic
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
     if (isScanning) {
@@ -72,7 +59,7 @@ export default function ImportExcelPage() {
         setProgress(data)
         const remaining = data.total - data.processed
         if (remaining > 0) {
-          const seconds = remaining * 4 
+          const seconds = remaining * 4
           const mins = Math.floor(seconds / 60)
           const secs = seconds % 60
           setEstimatedTime(mins + ":" + secs.toString().padStart(2, '0'))
@@ -80,11 +67,11 @@ export default function ImportExcelPage() {
           setEstimatedTime("0:00")
           if (data.total > 0 && data.processed === data.total) {
             setIsScanning(false)
-            setResult({ success: true, message: "L'enrichissement de tous les profils est terminé !" })
+            setResult({ success: true, message: "Enrichissement terminé !" })
             fetchAlumni()
           }
         }
-      }, 5000) // Poll more frequently for testing
+      }, 5000)
     }
     return () => { if (interval) clearInterval(interval) }
   }, [isScanning, fetchAlumni])
@@ -109,72 +96,111 @@ export default function ImportExcelPage() {
     setResult(res)
   }
 
+  // Filtered Data
+  const filteredAlumni = useMemo(() => {
+    return alumni.filter(p => {
+      const matchesSearch = (p.first_name + ' ' + p.last_name + ' ' + p.current_company).toLowerCase().includes(searchTerm.toLowerCase());
+      const isVerified = p.degree && p.degree !== 'Importé via Excel';
+      
+      if (filterStatus === 'verified') return matchesSearch && isVerified;
+      if (filterStatus === 'pending') return matchesSearch && !isVerified;
+      return matchesSearch;
+    });
+  }, [alumni, searchTerm, filterStatus]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const total = alumni.length;
+    const verified = alumni.filter(p => p.degree && p.degree !== 'Importé via Excel').length;
+    const placed = alumni.filter(p => p.current_company).length;
+    return { total, verified, placed };
+  }, [alumni]);
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] py-8">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto mb-8">
-          <Link href="/alumni" className="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour à l&apos;annuaire
-          </Link>
-          <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">Console d&apos;administration Alumni</h1>
+    <div className="min-h-screen bg-slate-50 py-8 px-4">
+      <div className="container mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <Link href="/alumni" className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-blue-600 mb-2 transition-colors">
+              <ArrowLeft className="h-4 w-4 mr-2" /> Retour à l&apos;annuaire
+            </Link>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">DASHBOARD ADMIN</h1>
+            <p className="text-slate-500">Gérez l&apos;importation et l&apos;enrichissement des données.</p>
+          </div>
+          <div className="flex gap-3">
+            <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 flex items-center gap-3">
+              <div className="bg-blue-50 p-2 rounded-lg text-blue-600"><Users className="h-5 w-5" /></div>
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase">Total</p>
+                <p className="text-lg font-black text-slate-900">{stats.total}</p>
+              </div>
+            </div>
+            <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 flex items-center gap-3">
+              <div className="bg-green-50 p-2 rounded-lg text-green-600"><CheckCircle2 className="h-5 w-5" /></div>
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase">Vérifiés</p>
+                <p className="text-lg font-black text-slate-900">{stats.verified}</p>
+              </div>
+            </div>
+            <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 flex items-center gap-3">
+              <div className="bg-amber-50 p-2 rounded-lg text-amber-600"><Briefcase className="h-5 w-5" /></div>
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase">En poste</p>
+                <p className="text-lg font-black text-slate-900">{stats.placed}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
-          {/* Step 1: Import */}
+        {/* Actions Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
           <Card className="border-none shadow-lg rounded-2xl overflow-hidden bg-white">
-            <CardHeader className="bg-blue-600 text-white pb-6">
-              <div className="flex items-center gap-3">
-                <FileSpreadsheet className="h-6 w-6" />
-                <CardTitle className="text-xl font-bold">1. Importation</CardTitle>
-              </div>
-              <CardDescription className="text-blue-100">Prénoms, Noms et LinkedIn</CardDescription>
+            <div className="h-1.5 bg-blue-600 w-full" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileSpreadsheet className="h-5 w-5 text-blue-600" /> Import Excel
+              </CardTitle>
+              <CardDescription>Mettez à jour la base avec un fichier .xlsx ou .csv</CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
-              <form action={handleUpload} className="space-y-4">
-                <div className="relative group border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-blue-400 hover:bg-blue-50/30 transition-all text-center">
-                  <Input 
-                    id="file" name="file" type="file" accept=".xlsx, .xls, .csv" required
-                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                  />
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                  <p className="text-sm font-medium text-slate-600">Cliquer ou glisser le fichier</p>
+            <CardContent>
+              <form action={handleUpload} className="flex gap-3">
+                <div className="relative flex-1">
+                  <Input id="file" name="file" type="file" accept=".xlsx, .xls, .csv" required className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
+                  <div className="h-10 w-full border border-slate-200 bg-slate-50 rounded-lg flex items-center px-3 text-sm text-slate-500 hover:border-blue-400 transition-colors">
+                    Choisir un fichier...
+                  </div>
                 </div>
-                <Button type="submit" disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700 h-11 rounded-xl font-bold shadow-md transition-all">
-                  {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Import...</> : "Lancer l'importation"}
+                <Button type="submit" disabled={isUploading} className="bg-blue-600 hover:bg-blue-700 font-bold">
+                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 </Button>
               </form>
             </CardContent>
           </Card>
 
-          {/* Step 2: Enrichment */}
           <Card className="border-none shadow-lg rounded-2xl overflow-hidden bg-white">
-            <CardHeader className="bg-amber-500 text-white pb-6">
-              <div className="flex items-center gap-3">
-                <Zap className="h-6 w-6" />
-                <CardTitle className="text-xl font-bold">2. Robot LinkedIn</CardTitle>
-              </div>
-              <CardDescription className="text-amber-50 text-balance">Photos, Diplômes et Postes</CardDescription>
+            <div className="h-1.5 bg-amber-500 w-full" />
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Zap className="h-5 w-5 text-amber-500" /> Robot LinkedIn
+              </CardTitle>
+              <CardDescription>Récupération automatique des données manquantes</CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent>
               {!isScanning ? (
-                <Button 
-                  onClick={handleStartScan} 
-                  disabled={isUploading}
-                  className="w-full bg-amber-500 hover:bg-amber-600 h-11 rounded-xl font-bold shadow-md transition-all"
-                >
-                  Lancer l'enrichissement
+                <Button onClick={handleStartScan} className="w-full bg-amber-500 hover:bg-amber-600 font-bold text-white shadow-md">
+                  Lancer l&apos;enrichissement
                 </Button>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex justify-between text-xs font-black uppercase text-amber-600">
-                    <span>Scan : {progress.processed} / {progress.total}</span>
-                    <span>{estimatedTime ? `Reste ~${estimatedTime}` : "Calcul..."}</span>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-xs font-bold text-slate-500 uppercase">
+                    <span>Progression</span>
+                    <span className="text-amber-600">{estimatedTime ? `~${estimatedTime}` : "..."}</span>
                   </div>
-                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full bg-amber-500 transition-all duration-1000" style={{ width: `${progress.percentage}%` }} />
                   </div>
-                  <p className="text-[10px] text-slate-400 italic text-center">Gardez l'onglet LinkedIn ouvert.</p>
+                  <p className="text-xs text-center text-slate-400 italic">Traitement de {progress.processed} / {progress.total} profils...</p>
                 </div>
               )}
             </CardContent>
@@ -182,120 +208,111 @@ export default function ImportExcelPage() {
         </div>
 
         {result && (
-          <div className={`max-w-4xl mx-auto mb-8 p-4 rounded-xl border-2 flex items-center gap-3 ${result.success ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800"}`}>
+          <div className={`mb-8 p-4 rounded-xl border flex items-center gap-3 ${result.success ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
             {result.success ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-            <span className="font-bold text-sm">{result.message || (result.success ? `${result.count} profils importés.` : result.error)}</span>
+            <span className="font-bold text-sm">{result.message || (result.success ? `${result.count} profils traités.` : result.error)}</span>
           </div>
         )}
 
-        {/* DATA TABLE VIEW */}
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
-          <div className="p-6 bg-slate-900 flex items-center justify-between">
-            <h2 className="text-xl font-black text-white uppercase italic tracking-tighter">Aperçu complet des données ({alumni.length})</h2>
-            <Button onClick={fetchAlumni} variant="ghost" className="text-white hover:bg-white/10 rounded-full h-9 w-9 p-0">
-              <RefreshCcw className={`h-4 w-4 ${isScanning ? 'animate-spin' : ''}`} />
-            </Button>
+        {/* Data Table */}
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input 
+                placeholder="Filtrer par nom ou entreprise..." 
+                className="pl-9 bg-white border-slate-200 focus-visible:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant={filterStatus === 'all' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => setFilterStatus('all')}
+                className="text-xs font-bold"
+              >
+                Tout
+              </Button>
+              <Button 
+                variant={filterStatus === 'verified' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => setFilterStatus('verified')}
+                className="text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100"
+              >
+                Vérifiés
+              </Button>
+              <Button 
+                variant={filterStatus === 'pending' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => setFilterStatus('pending')}
+                className="text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100"
+              >
+                En attente
+              </Button>
+            </div>
           </div>
-          
-          <div className="overflow-x-auto">
+
+          <div className="overflow-x-auto max-h-[600px]">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  <th className="px-6 py-4">Profil</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Entreprise Actuelle</th>
-                  <th className="px-6 py-4">Formation MyDigitalSchool</th>
-                  <th className="px-6 py-4">Dates</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+              <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                <tr className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <th className="px-6 py-3">Alumni</th>
+                  <th className="px-6 py-3">Statut</th>
+                  <th className="px-6 py-3">Poste & Entreprise</th>
+                  <th className="px-6 py-3">Formation</th>
+                  <th className="px-6 py-3 text-right">Lien</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {alumni.map((profile) => {
-                  const isVerified = profile.degree && profile.degree !== 'Importé via Excel' && profile.degree !== 'Parcours non trouvé';
-                  const isNotFound = profile.degree === 'Parcours non trouvé';
-
-                  return (
-                    <tr key={profile.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                            {profile.avatar_url ? (
-                              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center text-slate-400 font-bold text-sm">
-                                {profile.first_name?.[0]}{profile.last_name?.[0]}
-                              </div>
-                            )}
-                          </div>
+                {filteredAlumni.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg overflow-hidden bg-slate-200 shrink-0">
+                          {p.avatar_url ? (
+                            <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-slate-400 font-bold text-xs">{p.first_name?.[0]}</div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">{p.first_name} {p.last_name}</p>
+                          <p className="text-[10px] text-slate-400">{p.email || 'Pas d\'email'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3">
+                      {p.degree && p.degree !== 'Importé via Excel' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-green-50 text-green-700 text-[10px] font-bold uppercase border border-green-100">Vérifié</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-500 text-[10px] font-bold uppercase border border-slate-200">En attente</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3">
+                      {p.current_company ? (
+                        <div className="flex items-center gap-2">
+                          {p.company_logo && <img src={p.company_logo} className="h-5 w-5 object-contain rounded-sm" alt="" />}
                           <div>
-                            <p className="font-black text-slate-900 text-sm uppercase">{profile.first_name} {profile.last_name}</p>
-                            <p className="text-[10px] font-bold text-slate-400 truncate max-w-[150px]">{profile.email || 'Email non fourni'}</p>
+                            <p className="text-xs font-bold text-slate-800">{p.current_company}</p>
+                            <p className="text-[10px] text-slate-500 truncate max-w-[150px]">{p.current_job_title}</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {isVerified ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-green-50 text-green-700 text-[9px] font-black uppercase tracking-tighter border border-green-100">
-                            <CheckCircle className="h-2.5 w-2.5" /> Vérifié
-                          </span>
-                        ) : isNotFound ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-tighter border border-slate-200">
-                            <X className="h-2.5 w-2.5" /> Inconnu
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-tighter border border-blue-100">
-                            <Loader2 className="h-2.5 w-2.5 animate-spin" /> En attente
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {profile.current_company ? (
-                          <div className="flex items-center gap-2">
-                            {profile.company_logo && (
-                              <img src={profile.company_logo} alt="" className="h-6 w-6 rounded shadow-sm border border-slate-100 bg-white object-contain" />
-                            )}
-                            <div className="max-w-[180px]">
-                              <p className="text-xs font-bold text-slate-800 truncate uppercase">{profile.current_company}</p>
-                              <p className="text-[10px] text-slate-500 line-clamp-1 italic">{profile.current_job_title}</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-slate-300 italic">Non scanné</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-start gap-2 max-w-[200px]">
-                          <GraduationCap className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
-                          <p className="text-xs font-semibold text-slate-600 leading-tight">{profile.degree || '...'}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 text-slate-500">
-                          <Calendar className="h-3.5 w-3.5" />
-                          <span className="text-xs font-bold font-mono">{profile.entry_year || '??'} - {profile.grad_year || '??'}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <a 
-                            href={profile.linkedin_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                          >
-                            <Linkedin className="h-4 w-4" />
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
+                      ) : <span className="text-xs text-slate-300 italic">-</span>}
+                    </td>
+                    <td className="px-6 py-3">
+                      <p className="text-xs text-slate-600 truncate max-w-[200px]" title={p.degree || ''}>{p.degree || '-'}</p>
+                    </td>
+                    <td className="px-6 py-3 text-right">
+                      <a href={p.linkedin_url} target="_blank" className="text-blue-600 hover:text-blue-800"><Linkedin className="h-4 w-4 ml-auto" /></a>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-            {alumni.length === 0 && (
-              <div className="p-20 text-center text-slate-300 italic font-medium">
-                Aucune donnée à afficher. Commencez par importer un fichier Excel.
-              </div>
+            {filteredAlumni.length === 0 && (
+              <div className="p-12 text-center text-slate-400 italic">Aucun profil ne correspond à vos filtres.</div>
             )}
           </div>
         </div>

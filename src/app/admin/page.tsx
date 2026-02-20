@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Users, Briefcase, Settings, Calendar, ShieldCheck, ChevronRight } from 'lucide-react'
+import { Users, Briefcase, Settings, Calendar, ShieldCheck, ChevronRight, ArrowLeft } from 'lucide-react'
 import { redirect } from 'next/navigation'
 
 export default async function AdminDashboard() {
@@ -28,6 +28,14 @@ export default async function AdminDashboard() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto px-4 py-12">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6 group font-bold"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Retour à l'accueil
+        </Link>
+
         <header className="mb-12">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
@@ -46,6 +54,12 @@ export default async function AdminDashboard() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
+          <ManagementCard 
+            title="Gestion des Alumni" 
+            description="Importez des listes Excel et enrichissez les profils via LinkedIn."
+            href="/admin/alumni"
+            icon={<Users className="h-6 w-6" />}
+          />
           <ManagementCard 
             title="Offres d'emploi" 
             description="Publiez de nouvelles offres ou gérez les annonces existantes."
@@ -95,7 +109,7 @@ function ManagementCard({ title, description, href, icon, variant = "default" }:
   return (
     <Link href={href} className="group">
       <Card className={`h-full transition-all duration-300 group-hover:border-primary border-2 ${variant === 'outline' ? 'border-dashed' : ''}`}>
-        <CardHeader className="p-8">
+        <CardHeader className="p-8 pb-10">
           <div className="flex items-center justify-between mb-4">
             <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500">
               {icon}

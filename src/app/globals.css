@@ -97,7 +97,7 @@
 
 @layer components {
   .bg-pro-max {
-    @apply relative overflow-hidden;
+    @apply relative overflow-hidden bg-background;
   }
 
   /* Very subtle static grid */

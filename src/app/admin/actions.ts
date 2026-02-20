@@ -23,8 +23,9 @@ const eventSchema = z.object({
   date: z.string().min(1, "La date est requise"),
   start_time: z.string().min(1, "L'heure de début est requise"),
   end_time: z.string().min(1, "L'heure de fin est requise"),
-  type: z.enum(['Conférence', 'Workshop', 'Afterwork', 'Forum', 'Autre']),
+  type: z.string().min(2, "Le type est requis"),
   location: z.string().min(2, "La localisation est requise"),
+  image_url: z.string().optional(),
 })
 
 async function checkRole(allowedRoles: string[]) {
@@ -213,6 +214,44 @@ export async function deleteUser(userId: string) {
   revalidatePath('/admin/roles')
 }
 
+export async function deleteAlumnus(alumnusId: string) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('alumni')
+    .delete()
+    .eq('id', alumnusId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/alumni')
+  revalidatePath('/alumni')
+}
+
+export async function updateAlumnus(alumnusId: string, formData: FormData) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const data = {
+    first_name: formData.get('first_name'),
+    last_name: formData.get('last_name'),
+    linkedin_url: formData.get('linkedin_url'),
+    grad_year: parseInt(formData.get('grad_year') as string) || null,
+    degree: formData.get('degree'),
+    current_job_title: formData.get('current_job_title'),
+    current_company: formData.get('current_company'),
+  }
+
+  const { error } = await supabase
+    .from('alumni')
+    .update(data)
+    .eq('id', alumnusId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/alumni')
+  revalidatePath('/alumni')
+}
+
 export async function createJob(formData: FormData) {
   const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
 
@@ -228,7 +267,11 @@ export async function createJob(formData: FormData) {
   const validatedData = jobSchema.safeParse(rawData)
 
   if (!validatedData.success) {
+<<<<<<< HEAD
     throw new Error(validatedData.error.issues[0].message)
+=======
+    throw new Error(validatedData.error.issues[0]?.message || "Erreur de validation")
+>>>>>>> 36ac3789d47ccabe8c03d2dcd3e1bd8ec3f33ee3
   }
 
   const { error } = await supabase
@@ -274,7 +317,11 @@ export async function updateJob(jobId: string, formData: FormData) {
   const validatedData = jobSchema.safeParse(rawData)
 
   if (!validatedData.success) {
+<<<<<<< HEAD
     throw new Error(validatedData.error.issues[0].message)
+=======
+    throw new Error(validatedData.error.issues[0]?.message || "Erreur de validation")
+>>>>>>> 36ac3789d47ccabe8c03d2dcd3e1bd8ec3f33ee3
   }
 
   const { error } = await supabase
@@ -293,6 +340,27 @@ export async function updateJob(jobId: string, formData: FormData) {
 export async function createEvent(formData: FormData) {
   const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
 
+  const imageFile = formData.get('image') as File | null
+  let imageUrl = null
+
+  if (imageFile && imageFile.size > 0) {
+    const fileExt = imageFile.name.split('.').pop()
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
+    const filePath = `event-images/${fileName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('events')
+      .upload(filePath, imageFile)
+
+    if (uploadError) throw new Error(`Erreur lors de l'upload de l'image : ${uploadError.message}`)
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('events')
+      .getPublicUrl(filePath)
+    
+    imageUrl = publicUrl
+  }
+
   const rawData = {
     title: formData.get('title'),
     description: formData.get('description'),
@@ -301,12 +369,17 @@ export async function createEvent(formData: FormData) {
     end_time: formData.get('end_time'),
     type: formData.get('type'),
     location: formData.get('location'),
+    image_url: imageUrl,
   }
 
   const validatedData = eventSchema.safeParse(rawData)
 
   if (!validatedData.success) {
+<<<<<<< HEAD
     throw new Error(validatedData.error.issues[0].message)
+=======
+    throw new Error(validatedData.error.issues[0]?.message || "Erreur de validation")
+>>>>>>> 36ac3789d47ccabe8c03d2dcd3e1bd8ec3f33ee3
   }
 
   const { error } = await supabase
@@ -340,6 +413,27 @@ export async function deleteEvent(eventId: string) {
 export async function updateEvent(eventId: string, formData: FormData) {
   const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
 
+  const imageFile = formData.get('image') as File | null
+  let imageUrl = formData.get('image_url') as string | null
+
+  if (imageFile && imageFile.size > 0) {
+    const fileExt = imageFile.name.split('.').pop()
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
+    const filePath = `event-images/${fileName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('events')
+      .upload(filePath, imageFile)
+
+    if (uploadError) throw new Error(`Erreur lors de l'upload de l'image : ${uploadError.message}`)
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('events')
+      .getPublicUrl(filePath)
+    
+    imageUrl = publicUrl
+  }
+
   const rawData = {
     title: formData.get('title'),
     description: formData.get('description'),
@@ -348,12 +442,17 @@ export async function updateEvent(eventId: string, formData: FormData) {
     end_time: formData.get('end_time'),
     type: formData.get('type'),
     location: formData.get('location'),
+    image_url: imageUrl,
   }
 
   const validatedData = eventSchema.safeParse(rawData)
 
   if (!validatedData.success) {
+<<<<<<< HEAD
     throw new Error(validatedData.error.issues[0].message)
+=======
+    throw new Error(validatedData.error.issues[0]?.message || "Erreur de validation")
+>>>>>>> 36ac3789d47ccabe8c03d2dcd3e1bd8ec3f33ee3
   }
 
   const { error } = await supabase
@@ -366,6 +465,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
   if (error) throw new Error(error.message)
 
   revalidatePath('/admin/events')
+  revalidatePath(`/events/${eventId}`)
   revalidatePath('/events')
 }
 
