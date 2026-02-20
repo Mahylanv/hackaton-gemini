@@ -6,6 +6,7 @@ import { jobSchema, JobInput } from '@/types/jobs'
 import { updateJob } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useState } from 'react'
@@ -126,9 +127,13 @@ export function JobEditDialog({ job }: { job: any }) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description courte</FormLabel>
+                  <FormLabel>Description du poste</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Textarea 
+                      placeholder="Détails de l'offre..." 
+                      className="min-h-[120px]"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

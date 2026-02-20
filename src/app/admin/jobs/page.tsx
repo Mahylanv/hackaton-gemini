@@ -5,6 +5,8 @@ import { deleteJob } from '@/app/admin/actions'
 import { JobCreationForm } from '@/components/features/jobs/JobCreationForm'
 import { JobEditDialog } from '@/components/features/jobs/JobEditDialog'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 export default async function AdminJobsPage() {
   const supabase = await createClient()
@@ -29,6 +31,14 @@ export default async function AdminJobsPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
+      <Link 
+        href="/admin" 
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6 group font-bold"
+      >
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+        Retour au tableau de bord
+      </Link>
+
       <h1 className="text-3xl font-bold mb-8 italic uppercase">Gestion des Offres</h1>
 
       <div className="grid md:grid-cols-3 gap-8">

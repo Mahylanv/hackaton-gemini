@@ -6,7 +6,7 @@ import { EventCreationForm } from '@/components/features/events/EventCreationFor
 import { EventEditDialog } from '@/components/features/events/EventEditDialog'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, MapPin, Clock, ExternalLink } from 'lucide-react'
+import { Calendar, MapPin, Clock, ExternalLink, ArrowLeft } from 'lucide-react'
 
 export default async function AdminEventsPage() {
   const supabase = await createClient()
@@ -31,6 +31,14 @@ export default async function AdminEventsPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
+      <Link 
+        href="/admin" 
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6 group font-bold"
+      >
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+        Retour au tableau de bord
+      </Link>
+
       <h1 className="text-3xl font-bold mb-8 italic uppercase">Gestion des Événements</h1>
 
       <div className="grid md:grid-cols-3 gap-8">

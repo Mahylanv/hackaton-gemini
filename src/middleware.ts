@@ -13,7 +13,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/jobs') ||
     request.nextUrl.pathname.startsWith('/events') ||
     request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/auth')
+    request.nextUrl.pathname.startsWith('/auth') ||
+    request.nextUrl.pathname.startsWith('/api/alumni/import')
 
   // 2. Si c'est une route publique, on ne fait RIEN (gain de temps immense)
   if (isPublicRoute) {
