@@ -9,6 +9,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "db:apply": "node scripts/migrate.mjs",
+    "migrate": "npm run db:apply",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"

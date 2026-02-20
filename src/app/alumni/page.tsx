@@ -129,6 +129,11 @@ export default async function AlumniDirectoryPage({
                       <CardTitle className="text-xl font-black tracking-tight group-hover:text-blue-600 transition-colors uppercase italic">
                         {profile.first_name} {profile.last_name}
                       </CardTitle>
+                      {profile.current_job_title && (
+                        <p className="text-xs font-bold text-slate-500 mt-0.5 line-clamp-1 italic">
+                          {profile.current_job_title}
+                        </p>
+                      )}
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
                           MyDigitalSchool

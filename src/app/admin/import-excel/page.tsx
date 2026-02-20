@@ -22,15 +22,14 @@ export default function ImportExcelPage() {
     let interval: NodeJS.Timeout;
 
     if (isScanning) {
-      // On réduit la fréquence pour moins polluer les logs (toutes les 8 secondes)
       interval = setInterval(async () => {
         const data = await getEnrichmentProgress()
         setProgress(data)
         
-        // Nouvelle estimation plus réaliste (8s par profil restant)
+        // Nouvelle estimation (approx 6s par profil restant avec les optimisations)
         const remaining = data.total - data.processed
         if (remaining > 0) {
-          const seconds = remaining * 8
+          const seconds = remaining * 6
           const mins = Math.floor(seconds / 60)
           const secs = seconds % 60
           setEstimatedTime(`${mins}:${secs.toString().padStart(2, '0')}`)
@@ -41,7 +40,7 @@ export default function ImportExcelPage() {
             setResult({ success: true, message: "L'enrichissement de tous les profils est terminé !" })
           }
         }
-      }, 8000) 
+      }, 2000) // Poll every 2 seconds for better responsiveness
     }
 
     return () => clearInterval(interval)

@@ -20,7 +20,7 @@ function deduplicateDegrees(degrees: string[]): string {
 }
 
 async function enrichProfiles() {
-  console.log(`\x1b[34m[INFO] ${new Date().toISOString()} - Lancement du robot d'enrichissement optimisé...\x1b[0m`);
+  console.log(`\x1b[34m[INFO] ${new Date().toISOString()} - Lancement du robot d'enrichissement (Turbo Mode)...\x1b[0m`);
 
   const { data: alumni, error } = await supabase
     .from('alumni')
@@ -62,17 +62,19 @@ async function enrichProfiles() {
       try {
         await page.goto(person.linkedin_url, { waitUntil: 'domcontentloaded', timeout: 60000 });
         
-        // Attente réduite pour plus de rapidité
-        await page.waitForTimeout(2000);
+        // Attente réduite au strict minimum
+        await page.waitForTimeout(1500);
 
-        // --- 1. EXTRACTION PHOTO DE PROFIL ---
+        // --- 1. PHOTO ---
         const avatarUrl = await page.getAttribute(
           '.pv-top-card-profile-picture__image--show, .pv-top-card__photo img, [data-test-icon="profile-picture"] img', 
           'src'
         ).catch(() => null);
 
-        // --- 2. EXTRACTION ENTREPRISE ACTUELLE ---
-        // On cherche dans le panneau de droite de la top-card ou la première expérience
+        // --- 2. POSTE (Headline) ---
+        const jobTitle = await page.innerText('.text-body-medium.break-words').catch(() => null);
+
+        // --- 3. ENTREPRISE (Top Card) ---
         let currentCompany = null;
         let companyLogo = null;
 
@@ -82,32 +84,24 @@ async function enrichProfiles() {
             companyLogo = await companyElement.locator('img').getAttribute('src').catch(() => null);
         }
 
-        // --- 3. EXTRACTION FORMATIONS ---
-        await page.evaluate(() => window.scrollBy(0, 1200));
-        await page.waitForTimeout(1500);
-
+        // --- 4. FORMATIONS (Scroller uniquement si MyDigitalSchool non trouvé en haut) ---
+        // LinkedIn affiche parfois l'école en haut à droite, on peut tenter de la chopper là aussi
         const educationItems = await page.locator('.display-flex.flex-row.justify-space-between').all();
         let allDegrees: string[] = [];
-        let minEntryYear: number | null = null;
-        let maxGradYear: number | null = null;
 
-        for (const item of educationItems) {
+        // Si on n'a rien trouvé sans scroller, on scrolle
+        if (educationItems.length === 0) {
+            await page.evaluate(() => window.scrollBy(0, 1000));
+            await page.waitForTimeout(1000);
+        }
+
+        const visibleEducation = await page.locator('.display-flex.flex-row.justify-space-between').all();
+        for (const item of visibleEducation) {
           const schoolName = await item.locator('.hoverable-link-text.t-bold span[aria-hidden="true"]').first().innerText().catch(() => "");
-          
           if (schoolName.toLowerCase().includes('mydigitalschool')) {
             const degree = await item.locator('.t-14.t-normal span[aria-hidden="true"]').first().innerText().catch(() => "");
-            const yearsRaw = await item.locator('.t-14.t-normal.t-black--light .pvs-entity__caption-wrapper').first().innerText().catch(() => "");
-            
-            if (degree && !degree.match(/\d/) && !degree.toLowerCase().includes('abonné') && !degree.toLowerCase().includes('follower')) {
+            if (degree && !degree.match(/\d/) && !degree.toLowerCase().includes('abonné')) {
               allDegrees.push(degree.trim());
-            }
-
-            const years = yearsRaw.match(/\d{4}/g);
-            if (years) {
-              const start = parseInt(years[0]);
-              const end = years.length > 1 ? parseInt(years[1]) : start;
-              if (minEntryYear === null || start < minEntryYear) minEntryYear = start;
-              if (maxGradYear === null || end > maxGradYear) maxGradYear = end;
             }
           }
         }
@@ -117,23 +111,21 @@ async function enrichProfiles() {
         const finalData = {
           avatar_url: avatarUrl,
           degree: finalDegree,
-          entry_year: minEntryYear,
-          grad_year: maxGradYear,
+          current_job_title: jobTitle?.trim() || null,
           current_company: currentCompany?.trim() || null,
           company_logo: companyLogo || null,
           updated_at: new Date().toISOString()
         };
 
         await supabase.from('alumni').update(finalData).eq('id', person.id);
-        console.log(`  \x1b[32m[BDD] ${finalDegree}\x1b[0m`);
-        if (currentCompany) console.log(`  \x1b[32m[JOB] ${currentCompany}\x1b[0m`);
+        console.log(`  \x1b[32m[BDD] Mise à jour effectuée.\x1b[0m`);
 
       } catch (err: any) {
         console.error(`  \x1b[31m[ERREUR] ${err.message}\x1b[0m`);
       }
       
-      // Pause plus courte pour accélerer le processus
-      await page.waitForTimeout(2000 + Math.random() * 1000);
+      // Pause minimale
+      await page.waitForTimeout(1000 + Math.random() * 500);
     }
 
   } finally {

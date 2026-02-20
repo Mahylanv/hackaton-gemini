@@ -88,6 +88,8 @@ export async function importExcelData(formData: FormData) {
       const firstName = row.Prenom || row.prenom || row['First Name'] || row.firstname || ''
       const lastName = row.Nom || row.nom || row['Last Name'] || row.lastname || ''
       let linkedinUrl = row.Linkedin || row.linkedin || row['LinkedIn URL'] || ''
+      const entryYear = parseInt(row.Entree || row.entree || row.entry || '') || null
+      const gradYear = parseInt(row.Sortie || row.sortie || row.grad || '') || null
       
       if (!firstName || !lastName) return null
 
@@ -102,6 +104,8 @@ export async function importExcelData(formData: FormData) {
         first_name: firstName,
         last_name: lastName,
         linkedin_url: linkedinUrl,
+        entry_year: entryYear,
+        grad_year: gradYear,
         degree: 'Importé via Excel',
         updated_at: new Date().toISOString()
       }
