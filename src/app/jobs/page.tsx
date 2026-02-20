@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
 import { FilterSelect } from '@/components/ui/filter-select'
-import { Briefcase, MapPin, Clock, ExternalLink } from 'lucide-react'
+import { Briefcase, MapPin, Clock, ExternalLink, ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
@@ -33,90 +33,99 @@ export default async function JobsPage({
   const { data: jobs } = await supabaseQuery
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-bold italic uppercase mb-2">Offres d'emploi</h1>
-          <p className="text-muted-foreground text-lg">Découvrez les opportunités du réseau MDS.</p>
-        </div>
+    <div className="min-h-screen bg-pro-max">
+      <div className="container mx-auto px-4 py-12 relative">
+        <header className="mb-12 space-y-8 text-center">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
+              <Briefcase className="h-3.5 w-3.5" /> Talents Board
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter">Offres d'emploi</h1>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto text-balance">
+              Les meilleures opportunités professionnelles partagées par le réseau.
+            </p>
+          </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
-          <Suspense fallback={<div className="w-64 h-10 bg-muted animate-pulse rounded-md" />}>
-            <SearchInput placeholder="Poste, entreprise..." />
-          </Suspense>
-          
-          <FilterSelect 
-            name="type"
-            placeholder="Tous types"
-            defaultValue={type}
-            options={[
-              { label: 'CDI', value: 'CDI' },
-              { label: 'CDD', value: 'CDD' },
-              { label: 'Stage', value: 'STAGE' },
-              { label: 'Alternance', value: 'ALTERNANCE' },
-              { label: 'Freelance', value: 'FREELANCE' },
-            ]}
-          />
+          <div className="max-w-3xl mx-auto w-full flex flex-col md:flex-row gap-3 items-center bg-background p-3 rounded-2xl border shadow-lg">
+            <div className="flex-1 w-full">
+              <Suspense fallback={<div className="w-full h-12 bg-muted animate-pulse rounded-xl" />}>
+                <SearchInput placeholder="Poste, entreprise, mots-clés..." />
+              </Suspense>
+            </div>
+            
+            <div className="flex gap-2 w-full md:w-auto shrink-0">
+              <FilterSelect 
+                name="type"
+                placeholder="Tous types"
+                defaultValue={type}
+                options={[
+                  { label: 'CDI', value: 'CDI' },
+                  { label: 'CDD', value: 'CDD' },
+                  { label: 'Stage', value: 'STAGE' },
+                  { label: 'Alternance', value: 'ALTERNANCE' },
+                  { label: 'Freelance', value: 'FREELANCE' },
+                ]}
+              />
 
-          {(query || type) && (
-            <Link href="/jobs">
-              <Button variant="ghost">Effacer</Button>
-            </Link>
+              {(query || type) && (
+                <Link href="/jobs">
+                  <Button variant="ghost" className="h-10 font-bold px-6">Effacer</Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {jobs?.map((job) => (
+            <Card key={job.id} className="group hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 border-2 flex flex-col">
+              <CardHeader className="p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-primary text-primary-foreground">
+                    {job.type}
+                  </span>
+                  <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1 uppercase">
+                    <Clock className="h-3 w-3" />
+                    {new Date(job.created_at).toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-black group-hover:text-primary transition-colors line-clamp-1">
+                    {job.title}
+                  </CardTitle>
+                  <p className="font-bold text-sm text-foreground/80 mt-1">{job.company}</p>
+                </div>
+              </CardHeader>
+              <CardContent className="px-6 pb-6 pt-0 flex-1 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                    {job.location}
+                  </div>
+                  <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">
+                    {job.description}
+                  </p>
+                </div>
+                
+                {job.link && (
+                  <Button asChild className="w-full mt-6 rounded-xl font-bold shadow-lg shadow-primary/10 group-hover:shadow-primary/20 transition-all" size="sm">
+                    <a href={job.link} target="_blank" rel="noopener noreferrer">
+                      Postuler <ArrowUpRight className="ml-2 h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+
+          {jobs?.length === 0 && (
+            <div className="md:col-span-3 text-center py-24 bg-background border-2 border-dashed rounded-3xl">
+              <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-20" />
+              <p className="text-xl font-bold text-muted-foreground">Aucune offre disponible.</p>
+              <p className="text-muted-foreground mt-1">Revenez plus tard pour de nouvelles opportunités.</p>
+            </div>
           )}
         </div>
-      </header>
-
-      <div className="grid gap-6">
-        {jobs?.map((job) => (
-          <Card key={job.id} className="group hover:border-primary transition-all">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div className="space-y-1">
-                <CardTitle className="text-2xl group-hover:text-primary transition-colors">
-                  {job.title}
-                </CardTitle>
-                <CardDescription className="text-lg font-medium text-foreground">
-                  {job.company}
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase">
-                  {job.type}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  {job.location}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  Posté le {new Date(job.created_at).toLocaleDateString('fr-FR')}
-                </div>
-              </div>
-              
-              <p className="text-muted-foreground mb-6 line-clamp-2">
-                {job.description}
-              </p>
-
-              {job.link && (
-                <Button asChild>
-                  <a href={job.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                    Postuler <ExternalLink className="h-4 w-4" />
-                  </a>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-
-        {jobs?.length === 0 && (
-          <div className="text-center py-20 bg-muted/30 rounded-xl border-2 border-dashed">
-            <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-xl font-medium text-muted-foreground">Aucune offre disponible pour le moment.</p>
-          </div>
-        )}
       </div>
     </div>
   )

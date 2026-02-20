@@ -1,9 +1,10 @@
 import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { SearchInput } from '@/components/ui/search-input'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { GraduationCap, Mail, Linkedin } from 'lucide-react'
+import { Suspense } from 'react'
 
 export default async function AlumniDirectoryPage({
   searchParams,
@@ -32,90 +33,100 @@ export default async function AlumniDirectoryPage({
   const { data: alumni, error } = await supabaseQuery
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold italic uppercase">Annuaire Alumni</h1>
-          <p className="text-muted-foreground">Retrouvez les anciens étudiants du réseau.</p>
-        </div>
+    <div className="min-h-screen bg-pro-max">
+      <div className="container mx-auto px-4 py-12 relative">
+        <header className="mb-12 space-y-8 text-center">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
+              <GraduationCap className="h-3.5 w-3.5" /> Réseau Alumni
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter">Annuaire</h1>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto text-balance">
+              Connectez-vous avec les anciens diplômés et développez votre réseau professionnel.
+            </p>
+          </div>
 
-        <form className="flex flex-wrap gap-2 md:w-auto">
-          <Input 
-            name="query" 
-            placeholder="Rechercher un nom..." 
-            defaultValue={query}
-            className="w-full md:w-64"
-          />
-          <Input 
-            name="year" 
-            type="number"
-            placeholder="Année" 
-            defaultValue={year}
-            className="w-full md:w-24"
-          />
-          <Button type="submit">Filtrer</Button>
-          {(query || year) && (
-            <Link href="/alumni">
-              <Button variant="ghost">Effacer</Button>
-            </Link>
-          )}
-        </form>
-      </header>
+          <div className="max-w-3xl mx-auto w-full flex flex-col md:flex-row gap-3 items-center bg-background p-3 rounded-2xl border shadow-lg">
+            <div className="flex-1 w-full">
+              <Suspense fallback={<div className="w-full h-12 bg-muted animate-pulse rounded-xl" />}>
+                <SearchInput placeholder="Rechercher un alumni par nom ou prénom..." />
+              </Suspense>
+            </div>
+            <div className="flex gap-2 w-full md:w-auto shrink-0">
+              <input 
+                name="year" 
+                type="number"
+                placeholder="Année" 
+                defaultValue={year}
+                className="flex h-12 w-full md:w-24 rounded-xl border-2 border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const params = new URLSearchParams(window.location.search)
+                    params.set('year', (e.target as HTMLInputElement).value)
+                    window.location.search = params.toString()
+                  }
+                }}
+              />
+              {(query || year) && (
+                <Link href="/alumni">
+                  <Button variant="ghost" className="h-12 font-bold px-6">Effacer</Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </header>
 
-      {error ? (
-        <div className="p-4 bg-destructive/10 text-destructive rounded-md">
-          Une erreur est survenue lors de la récupération des données.
-        </div>
-      ) : alumni && alumni.length > 0 ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {alumni.map((profile) => (
-            <Card key={profile.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">
-                  {profile.first_name} {profile.last_name}
-                </CardTitle>
-                <p className="text-sm font-medium text-primary">
-                  {profile.degree} • {profile.grad_year}
-                </p>
-              </CardHeader>
-              <CardContent className="pt-0 flex justify-between items-center">
-                <p className="text-sm text-muted-foreground truncate italic">
-                  {profile.email}
-                </p>
-                {profile.linkedin_url && (
-                  <a 
-                    href={profile.linkedin_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-[#0A66C2] transition-colors"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="lucide lucide-linkedin"
-                    >
-                      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-                      <rect width="4" height="12" x="2" y="9" />
-                      <circle cx="4" cy="4" r="2" />
-                    </svg>
-                  </a>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20">
-          <p className="text-muted-foreground">Aucun alumni trouvé pour cette recherche.</p>
-        </div>
-      )}
+        {error ? (
+          <div className="p-8 text-center bg-destructive/5 border border-destructive/20 rounded-2xl text-destructive font-bold">
+            Une erreur est survenue lors de la récupération des données.
+          </div>
+        ) : alumni && alumni.length > 0 ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {alumni.map((profile) => (
+              <Card key={profile.id} className="group overflow-hidden border-2 transition-all duration-300 hover:border-primary hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1">
+                <CardHeader className="pb-4 space-y-1">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-xl font-bold tracking-tight group-hover:text-primary transition-colors">
+                      {profile.first_name} {profile.last_name}
+                    </CardTitle>
+                    <span className="text-xs font-black bg-muted px-2 py-1 rounded-md uppercase tracking-wider">
+                      Promo {profile.grad_year}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-primary/80 uppercase tracking-wide">
+                    {profile.degree}
+                  </p>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-4">
+                  <div className="h-px bg-border w-full" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors truncate">
+                      <Mail className="h-4 w-4 shrink-0" />
+                      <span className="text-xs font-medium truncate">{profile.email}</span>
+                    </div>
+                    {profile.linkedin_url && (
+                      <a 
+                        href={profile.linkedin_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-[#0A66C2] hover:text-white transition-all duration-300"
+                      >
+                        <Linkedin className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-24 bg-background border-2 border-dashed rounded-3xl">
+            <GraduationCap className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-20" />
+            <p className="text-xl font-bold text-muted-foreground">Aucun alumni trouvé.</p>
+            <p className="text-muted-foreground mt-1">Essayez d'ajuster vos critères de recherche.</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

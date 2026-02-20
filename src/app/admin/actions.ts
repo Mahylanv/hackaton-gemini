@@ -38,6 +38,19 @@ export async function updateRole(userId: string, newRole: string) {
   revalidatePath('/admin/roles')
 }
 
+export async function deleteUser(userId: string) {
+  const { supabase } = await checkRole(['SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', userId)
+
+  if (error) throw new Error(error.message)
+  
+  revalidatePath('/admin/roles')
+}
+
 export async function createJob(formData: FormData) {
   const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
 
@@ -193,3 +206,37 @@ export async function updateEvent(eventId: string, formData: FormData) {
   revalidatePath('/admin/events')
   revalidatePath('/events')
 }
+
+export async function toggleEventInterest(eventId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) throw new Error('Vous devez être connecté pour marquer un intérêt.')
+
+  // Vérifier si l'utilisateur s'intéresse déjà à l'événement
+  const { data: existingInterest } = await supabase
+    .from('event_interests')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (existingInterest) {
+    // Si l'intérêt existe, on le supprime (désintéressé)
+    const { error } = await supabase
+      .from('event_interests')
+      .delete()
+      .eq('id', existingInterest.id)
+    if (error) throw new Error(error.message)
+  } else {
+    // Sinon, on le crée (intéressé)
+    const { error } = await supabase
+      .from('event_interests')
+      .insert({ event_id: eventId, user_id: user.id })
+    if (error) throw new Error(error.message)
+  }
+
+  revalidatePath(`/events/${eventId}`)
+  revalidatePath('/events')
+}
+

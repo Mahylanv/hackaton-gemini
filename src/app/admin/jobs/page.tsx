@@ -28,13 +28,13 @@ export default async function AdminJobsPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-8 italic uppercase">Gestion des Offres</h1>
 
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-1">
           <Card className="sticky top-8">
-            <CardHeader>
+            <CardHeader className="pt-6">
               <CardTitle>Publier une offre</CardTitle>
             </CardHeader>
             <CardContent>
@@ -45,7 +45,7 @@ export default async function AdminJobsPage() {
 
         <div className="md:col-span-2">
           <Card>
-            <CardHeader>
+            <CardHeader className="pt-6">
               <CardTitle>Offres en ligne ({jobs?.length || 0})</CardTitle>
             </CardHeader>
             <CardContent>
