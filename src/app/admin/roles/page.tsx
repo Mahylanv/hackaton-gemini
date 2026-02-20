@@ -5,7 +5,8 @@ import { SearchInput } from '@/components/ui/search-input'
 import { updateRole, deleteUser } from '@/app/admin/actions'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function RoleManagementPage({
   searchParams,
@@ -43,6 +44,14 @@ export default async function RoleManagementPage({
 
   return (
     <div className="container mx-auto px-4 py-12">
+      <Link 
+        href="/admin" 
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6 group font-bold"
+      >
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+        Retour au tableau de bord
+      </Link>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <h1 className="text-3xl font-bold italic uppercase">Gestion des Rôles</h1>
         

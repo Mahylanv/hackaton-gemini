@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
+import { YearFilter } from '@/components/features/alumni/YearFilter'
 import Link from 'next/link'
 import { GraduationCap, Mail, Linkedin, CheckCircle, X, Building2, Calendar, Clock } from 'lucide-react'
 import { Suspense } from 'react'
@@ -53,14 +54,9 @@ export default async function AlumniDirectoryPage({
               </Suspense>
             </div>
             <div className="flex gap-2 w-full md:w-auto shrink-0">
-              <input 
-                name="year" 
-                type="number"
-                placeholder="Année" 
-                defaultValue={year}
-                className="flex h-12 w-full md:w-24 rounded-xl border-2 border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                // Local state or server-side sync would be better, but keeping the pattern
-              />
+              <Suspense fallback={<div className="h-12 w-24 bg-muted animate-pulse rounded-xl" />}>
+                <YearFilter defaultValue={year} />
+              </Suspense>
               {(query || year) && (
                 <Link href="/alumni">
                   <Button variant="ghost" className="h-12 font-bold px-6">Effacer</Button>

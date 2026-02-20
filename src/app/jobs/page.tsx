@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
 import { FilterSelect } from '@/components/ui/filter-select'
-import { Briefcase, MapPin, Clock, ExternalLink, ArrowUpRight } from 'lucide-react'
+import { Briefcase, MapPin, Clock, ExternalLink, ArrowUpRight, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
@@ -17,6 +17,17 @@ export default async function JobsPage({
   const query = params.query as string || ''
   const type = params.type as string || ''
   
+  const { data: { user } } = await supabase.auth.getUser()
+  let isAdmin = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    isAdmin = profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN'
+  }
+
   let supabaseQuery = supabase
     .from('jobs')
     .select('*')
@@ -127,6 +138,18 @@ export default async function JobsPage({
           )}
         </div>
       </div>
+
+      {isAdmin && (
+        <Link 
+          href="/admin/jobs" 
+          className="fixed bottom-8 right-8 z-50 animate-in fade-in zoom-in duration-500"
+        >
+          <Button size="lg" className="rounded-full h-16 px-8 shadow-2xl shadow-primary/40 font-black italic uppercase tracking-tighter gap-2 border-2 border-white/20 backdrop-blur-sm">
+            <Plus className="h-6 w-6" />
+            Publier une offre
+          </Button>
+        </Link>
+      )}
     </div>
   )
 }

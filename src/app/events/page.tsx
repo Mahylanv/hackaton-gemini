@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
-import { Calendar, MapPin, Clock, ArrowRight } from 'lucide-react'
+import { Calendar, MapPin, Clock, ArrowRight, Plus, ThumbsUp } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
@@ -15,6 +15,17 @@ export default async function EventsPage({
   const params = await searchParams
   const query = params.query as string || ''
   
+  const { data: { user } } = await supabase.auth.getUser()
+  let isAdmin = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    isAdmin = profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN'
+  }
+
   let supabaseQuery = supabase
     .from('events')
     .select('*, event_interests(count)')
@@ -72,8 +83,11 @@ export default async function EventsPage({
                         <p className="text-sm font-black italic uppercase tracking-tighter">{new Date(event.date).toLocaleDateString('fr-FR', { weekday: 'long' })}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black">{interestedCount} 👍</span>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5 bg-white/20 px-2 py-1 rounded-md backdrop-blur-sm">
+                        <ThumbsUp className="h-3.5 w-3.5 text-white fill-white/20" />
+                        <span className="text-xs font-black">{interestedCount}</span>
+                      </div>
                       <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
                         <ArrowRight className="h-5 w-5" />
                       </div>
@@ -114,6 +128,18 @@ export default async function EventsPage({
           )}
         </div>
       </div>
+
+      {isAdmin && (
+        <Link 
+          href="/admin/events" 
+          className="fixed bottom-8 right-8 z-50 animate-in fade-in zoom-in duration-500"
+        >
+          <Button size="lg" className="rounded-full h-16 px-8 shadow-2xl shadow-primary/40 font-black italic uppercase tracking-tighter gap-2 border-2 border-white/20 backdrop-blur-sm">
+            <Plus className="h-6 w-6" />
+            Créer un événement
+          </Button>
+        </Link>
+      )}
     </div>
   )
 }

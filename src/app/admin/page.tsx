@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Users, Briefcase, Settings, Calendar, ShieldCheck, ChevronRight } from 'lucide-react'
+import { Users, Briefcase, Settings, Calendar, ShieldCheck, ChevronRight, ArrowLeft } from 'lucide-react'
 import { redirect } from 'next/navigation'
 
 export default async function AdminDashboard() {
@@ -28,6 +28,14 @@ export default async function AdminDashboard() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto px-4 py-12">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-6 group font-bold"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Retour à l'accueil
+        </Link>
+
         <header className="mb-12">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">

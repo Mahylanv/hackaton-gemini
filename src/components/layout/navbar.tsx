@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/utils/supabase/server'
 import { signOut } from '@/app/auth/actions'
 import { Button } from '@/components/ui/button'
@@ -37,8 +38,17 @@ export default async function Navbar() {
         {/* Logo */}
         <Link 
           href="/" 
-          className="group flex items-center gap-0 shrink-0"
+          className="group flex items-center gap-3 shrink-0"
         >
+          <div className="relative h-10 w-10 overflow-hidden rounded-lg">
+            <Image 
+              src="/logo.png" 
+              alt="Logo" 
+              fill 
+              className="object-contain transition-transform group-hover:scale-110"
+              priority
+            />
+          </div>
           <span className="text-xl font-black italic uppercase tracking-tighter transition-opacity group-hover:opacity-80">
             <span className="text-secondary">MYDIGIT</span>
             <span className="text-primary">ALUMNI</span>
@@ -89,17 +99,27 @@ export default async function Navbar() {
         <div className="md:hidden flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-primary">
+              <Button variant="outline" size="icon" className="text-primary border-2 bg-background hover:bg-muted transition-all shadow-sm">
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-pro-max">
               <SheetHeader className="text-left mb-8">
                 <SheetTitle>
-                  <span className="text-xl font-black italic uppercase tracking-tighter">
-                    <span className="text-secondary">MYDIGIT</span>
-                    <span className="text-primary">ALUMNI</span>
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-8 w-8">
+                      <Image 
+                        src="/logo.png" 
+                        alt="Logo" 
+                        fill 
+                        className="object-contain"
+                      />
+                    </div>
+                    <span className="text-xl font-black italic uppercase tracking-tighter">
+                      <span className="text-secondary">MYDIGIT</span>
+                      <span className="text-primary">ALUMNI</span>
+                    </span>
+                  </div>
                 </SheetTitle>
               </SheetHeader>
               

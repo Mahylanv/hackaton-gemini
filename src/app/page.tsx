@@ -1,18 +1,30 @@
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Users, Briefcase, Calendar, ArrowRight, GraduationCap } from 'lucide-react'
 
 export default async function Home() {
   return (
-    <div className="relative min-h-[calc(100-4rem)] flex flex-col">
+    <div className="relative flex-1 flex flex-col">
       {/* Background Pattern */}
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-50" />
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 pt-24 pb-16 text-center">
+        <div className="flex justify-center mb-8 animate-in fade-in zoom-in duration-1000">
+          <div className="relative h-20 w-20 p-2 bg-background rounded-3xl border-4 border-primary/20 shadow-2xl">
+            <Image 
+              src="/logo.png" 
+              alt="MDS Logo" 
+              fill 
+              className="object-contain p-2"
+              priority
+            />
+          </div>
+        </div>
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-          <GraduationCap className="h-3 w-3" /> Exclusif aux Diplômés MDS
+          <GraduationCap className="h-3 w-3" /> Retrouvez les anciens de MyDigital School Paris !
         </div>
         <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-200">
           <span className="text-secondary">MYDIGIT</span>
@@ -89,15 +101,6 @@ export default async function Home() {
           </Card>
         </Link>
       </section>
-
-      {/* Footer-like simple ending */}
-      <footer className="mt-auto py-12 border-t">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground font-medium">
-            © 2026 MYDIGITALUMNI — Excellence & Réseau.
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }
