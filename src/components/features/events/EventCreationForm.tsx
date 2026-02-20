@@ -6,12 +6,14 @@ import { eventSchema, EventInput } from '@/types/events'
 import { createEvent } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Loader2, Upload } from 'lucide-react'
 
 export function EventCreationForm() {
   const [isLoading, setIsLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<EventInput>({
     resolver: zodResolver(eventSchema),
@@ -31,8 +33,13 @@ export function EventCreationForm() {
     try {
       const formData = new FormData()
       Object.entries(data).forEach(([key, value]) => {
-        formData.append(key, value)
+        if (value) formData.append(key, value)
       })
+
+      if (fileInputRef.current?.files?.[0]) {
+        formData.append('image', fileInputRef.current.files[0])
+      }
+
       await createEvent(formData)
     } catch (error) {
       console.error(error)
@@ -129,14 +136,30 @@ export function EventCreationForm() {
           )}
         />
 
+        <div className="space-y-2">
+          <FormLabel>Image de l'événement (optionnel)</FormLabel>
+          <div className="flex items-center gap-4">
+            <Input 
+              type="file" 
+              accept="image/*" 
+              ref={fileInputRef}
+              className="cursor-pointer"
+            />
+          </div>
+        </div>
+
         <FormField
           control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Description de l'événement</FormLabel>
               <FormControl>
-                <Input placeholder="Détails de l'événement..." {...field} />
+                <Textarea 
+                  placeholder="Détails, programme, informations importantes..." 
+                  className="min-h-[120px]"
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

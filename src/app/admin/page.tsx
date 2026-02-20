@@ -55,6 +55,12 @@ export default async function AdminDashboard() {
 
         <div className="grid md:grid-cols-2 gap-8">
           <ManagementCard 
+            title="Gestion des Alumni" 
+            description="Importez des listes Excel et enrichissez les profils via LinkedIn."
+            href="/admin/alumni"
+            icon={<Users className="h-6 w-6" />}
+          />
+          <ManagementCard 
             title="Offres d'emploi" 
             description="Publiez de nouvelles offres ou gérez les annonces existantes."
             href="/admin/jobs"
@@ -103,7 +109,7 @@ function ManagementCard({ title, description, href, icon, variant = "default" }:
   return (
     <Link href={href} className="group">
       <Card className={`h-full transition-all duration-300 group-hover:border-primary border-2 ${variant === 'outline' ? 'border-dashed' : ''}`}>
-        <CardHeader className="p-8">
+        <CardHeader className="p-8 pb-10">
           <div className="flex items-center justify-between mb-4">
             <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500">
               {icon}

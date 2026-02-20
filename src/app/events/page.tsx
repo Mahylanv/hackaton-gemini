@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
 import { Calendar, MapPin, Clock, ArrowRight, Plus, ThumbsUp } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Suspense } from 'react'
 
 export default async function EventsPage({
@@ -72,12 +73,29 @@ export default async function EventsPage({
             return (
               <Link key={event.id} href={`/events/${event.id}`}>
                 <Card className="group overflow-hidden border-2 transition-all duration-300 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/5 flex flex-col h-full">
-                  <div className="bg-primary p-4 flex justify-between items-center text-primary-foreground">
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-center justify-center h-12 w-12 rounded-lg bg-white/20 backdrop-blur-sm">
+                  <div className="relative h-48 w-full bg-primary/10 overflow-hidden">
+                    {event.image_url ? (
+                      <Image 
+                        src={event.image_url} 
+                        alt={event.title} 
+                        fill 
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                        <Calendar className="h-20 w-20 text-primary" />
+                      </div>
+                    )}
+                    <div className="absolute top-4 left-4 z-10">
+                      <div className="flex flex-col items-center justify-center h-12 w-12 rounded-lg bg-white/90 backdrop-blur-sm shadow-lg text-primary">
                         <span className="text-xs font-black uppercase leading-none">{new Date(event.date).toLocaleDateString('fr-FR', { month: 'short' })}</span>
                         <span className="text-xl font-black leading-none">{new Date(event.date).getDate()}</span>
                       </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-primary flex justify-between items-center text-primary-foreground">
+                    <div className="flex items-center gap-3">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{event.type}</p>
                         <p className="text-sm font-black italic uppercase tracking-tighter">{new Date(event.date).toLocaleDateString('fr-FR', { weekday: 'long' })}</p>

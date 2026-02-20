@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { notFound } from 'next/navigation'
 import { Calendar, MapPin, Clock, ArrowLeft, Tag } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { InterestedButton } from '@/components/features/events/InterestedButton'
 import { ShareButton } from '@/components/features/events/ShareButton'
 
@@ -100,16 +101,21 @@ export default async function EventDetailPage({
 
           <div className="grid lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-8">
-              <div className="prose prose-xl max-w-none">
-                <p className="text-2xl leading-relaxed font-medium text-foreground/90">
-                  {event.description}
-                </p>
-              </div>
+              {event.image_url && (
+                <div className="relative aspect-video w-full overflow-hidden rounded-[2rem] border-4 border-foreground shadow-[12px_12px_0px_0px_rgba(45,184,197,0.3)]">
+                  <Image 
+                    src={event.image_url} 
+                    alt={event.title} 
+                    fill 
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+              )}
 
-              {/* Placeholder for future detailed description if needed */}
               <div className="p-8 bg-muted/50 rounded-3xl border-2 border-dashed border-muted-foreground/20">
-                <p className="text-muted-foreground italic font-semibold">
-                  Plus de détails sur le programme seront communiqués prochainement.
+                <p className="text-base leading-relaxed font-medium text-foreground/90 whitespace-pre-wrap">
+                  {event.description}
                 </p>
               </div>
             </div>
