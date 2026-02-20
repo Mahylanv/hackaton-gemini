@@ -6,8 +6,47 @@ import * as XLSX from 'xlsx'
 import { revalidatePath } from 'next/cache'
 import { exec, spawn } from 'child_process'
 import { promisify } from 'util'
+import { z } from 'zod'
+import { redirect } from 'next/navigation'
 
 const execPromise = promisify(exec)
+
+const jobSchema = z.object({
+  title: z.string().min(2, "Le titre est requis"),
+  company: z.string().min(2, "L'entreprise est requise"),
+  description: z.string().min(10, "La description est trop courte"),
+  type: z.enum(['CDI', 'CDD', 'Alternance', 'Stage', 'Freelance']),
+  location: z.string().min(2, "La localisation est requise"),
+  link: z.string().url("Le lien doit être valide"),
+})
+
+const eventSchema = z.object({
+  title: z.string().min(2, "Le titre est requis"),
+  description: z.string().min(10, "La description est trop courte"),
+  date: z.string().min(1, "La date est requise"),
+  start_time: z.string().min(1, "L'heure de début est requise"),
+  end_time: z.string().min(1, "L'heure de fin est requise"),
+  type: z.enum(['Conférence', 'Workshop', 'Afterwork', 'Forum', 'Autre']),
+  location: z.string().min(2, "La localisation est requise"),
+})
+
+async function checkRole(allowedRoles: string[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Non authentifié')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !allowedRoles.includes(profile.role)) {
+    throw new Error('Accès refusé')
+  }
+
+  return { supabase, user }
+}
 
 export async function importExcelData(formData: FormData) {
   const supabase = await createClient()
@@ -86,9 +125,6 @@ export async function importExcelData(formData: FormData) {
   }
 }
 
-/**
- * Lance le script d'enrichissement LinkedIn en arrière-plan.
- */
 export async function startEnrichmentScan() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -117,9 +153,6 @@ export async function startEnrichmentScan() {
   }
 }
 
-/**
- * Récupère la progression actuelle de l'enrichissement.
- */
 export async function getEnrichmentProgress() {
   const supabase = await createClient()
   
@@ -138,4 +171,219 @@ export async function getEnrichmentProgress() {
     processed: processed || 0,
     percentage: total ? Math.round((processed! / total) * 100) : 0
   }
+}
+
+export async function updateRole(userId: string, role: string) {
+  const { supabase } = await checkRole(['SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ role })
+    .eq('id', userId)
+
+  if (error) throw new Error(error.message)
+  
+  revalidatePath('/admin/roles')
+}
+
+export async function deleteUser(userId: string) {
+  const { supabase } = await checkRole(['SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', userId)
+
+  if (error) throw new Error(error.message)
+  
+  revalidatePath('/admin/roles')
+}
+
+export async function createJob(formData: FormData) {
+  const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const rawData = {
+    title: formData.get('title'),
+    company: formData.get('company'),
+    description: formData.get('description'),
+    type: formData.get('type'),
+    location: formData.get('location'),
+    link: formData.get('link'),
+  }
+
+  const validatedData = jobSchema.safeParse(rawData)
+
+  if (!validatedData.success) {
+    throw new Error(validatedData.error.errors[0].message)
+  }
+
+  const { error } = await supabase
+    .from('jobs')
+    .insert({
+      ...validatedData.data,
+      author_id: user.id
+    })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/jobs')
+  revalidatePath('/jobs')
+  redirect('/admin/jobs')
+}
+
+export async function deleteJob(jobId: string) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('jobs')
+    .delete()
+    .eq('id', jobId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/jobs')
+  revalidatePath('/jobs')
+}
+
+export async function updateJob(jobId: string, formData: FormData) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const rawData = {
+    title: formData.get('title'),
+    company: formData.get('company'),
+    description: formData.get('description'),
+    type: formData.get('type'),
+    location: formData.get('location'),
+    link: formData.get('link'),
+  }
+
+  const validatedData = jobSchema.safeParse(rawData)
+
+  if (!validatedData.success) {
+    throw new Error(validatedData.error.errors[0].message)
+  }
+
+  const { error } = await supabase
+    .from('jobs')
+    .update({
+      ...validatedData.data,
+    })
+    .eq('id', jobId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/jobs')
+  revalidatePath('/jobs')
+}
+
+export async function createEvent(formData: FormData) {
+  const { supabase, user } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const rawData = {
+    title: formData.get('title'),
+    description: formData.get('description'),
+    date: formData.get('date'),
+    start_time: formData.get('start_time'),
+    end_time: formData.get('end_time'),
+    type: formData.get('type'),
+    location: formData.get('location'),
+  }
+
+  const validatedData = eventSchema.safeParse(rawData)
+
+  if (!validatedData.success) {
+    throw new Error(validatedData.error.errors[0].message)
+  }
+
+  const { error } = await supabase
+    .from('events')
+    .insert({
+      ...validatedData.data,
+      author_id: user.id
+    })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/events')
+  revalidatePath('/events')
+  redirect('/admin/events')
+}
+
+export async function deleteEvent(eventId: string) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const { error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', eventId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/events')
+  revalidatePath('/events')
+}
+
+export async function updateEvent(eventId: string, formData: FormData) {
+  const { supabase } = await checkRole(['ADMIN', 'SUPER_ADMIN'])
+
+  const rawData = {
+    title: formData.get('title'),
+    description: formData.get('description'),
+    date: formData.get('date'),
+    start_time: formData.get('start_time'),
+    end_time: formData.get('end_time'),
+    type: formData.get('type'),
+    location: formData.get('location'),
+  }
+
+  const validatedData = eventSchema.safeParse(rawData)
+
+  if (!validatedData.success) {
+    throw new Error(validatedData.error.errors[0].message)
+  }
+
+  const { error } = await supabase
+    .from('events')
+    .update({
+      ...validatedData.data,
+    })
+    .eq('id', eventId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/admin/events')
+  revalidatePath('/events')
+}
+
+export async function toggleEventInterest(eventId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) throw new Error('Vous devez être connecté pour marquer un intérêt.')
+
+  // Vérifier si l'utilisateur s'intéresse déjà à l'événement
+  const { data: existingInterest } = await supabase
+    .from('event_interests')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (existingInterest) {
+    // Si l'intérêt existe, on le supprime (désintéressé)
+    const { error } = await supabase
+      .from('event_interests')
+      .delete()
+      .eq('id', existingInterest.id)
+    if (error) throw new Error(error.message)
+  } else {
+    // Sinon, on le crée (intéressé)
+    const { error } = await supabase
+      .from('event_interests')
+      .insert({ event_id: eventId, user_id: user.id })
+    if (error) throw new Error(error.message)
+  }
+
+  revalidatePath(`/events/${eventId}`)
+  revalidatePath('/events')
 }
