@@ -22,14 +22,15 @@ export default function ImportExcelPage() {
     let interval: NodeJS.Timeout;
 
     if (isScanning) {
+      // On réduit la fréquence pour moins polluer les logs (toutes les 8 secondes)
       interval = setInterval(async () => {
         const data = await getEnrichmentProgress()
         setProgress(data)
         
-        // Calculate estimated time (approx 12s per remaining profile)
+        // Nouvelle estimation plus réaliste (8s par profil restant)
         const remaining = data.total - data.processed
         if (remaining > 0) {
-          const seconds = remaining * 12
+          const seconds = remaining * 8
           const mins = Math.floor(seconds / 60)
           const secs = seconds % 60
           setEstimatedTime(`${mins}:${secs.toString().padStart(2, '0')}`)
@@ -40,7 +41,7 @@ export default function ImportExcelPage() {
             setResult({ success: true, message: "L'enrichissement de tous les profils est terminé !" })
           }
         }
-      }, 3000) // Poll every 3 seconds
+      }, 8000) 
     }
 
     return () => clearInterval(interval)
@@ -59,7 +60,6 @@ export default function ImportExcelPage() {
     setResult(null)
     const res = await startEnrichmentScan()
     if (res.success) {
-      // Initial fetch
       const data = await getEnrichmentProgress()
       setProgress(data)
     }
@@ -75,7 +75,6 @@ export default function ImportExcelPage() {
         </Link>
 
         <div className="space-y-6">
-          {/* Step 1: Import */}
           <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
             <div className="h-2 bg-blue-600 w-full" />
             <CardHeader className="pb-2">
@@ -108,7 +107,6 @@ export default function ImportExcelPage() {
             </CardContent>
           </Card>
 
-          {/* Step 2: Enrichment */}
           <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
             <div className="h-2 bg-amber-500 w-full" />
             <CardHeader className="pb-2">
@@ -117,7 +115,7 @@ export default function ImportExcelPage() {
               </div>
               <CardTitle className="text-2xl font-bold">2. Enrichissement LinkedIn</CardTitle>
               <CardDescription>
-                Récupération automatique des <strong>photos</strong> et <strong>diplômes</strong>.
+                Récupération automatique des <strong>photos</strong>, <strong>diplômes</strong> et <strong>entreprises</strong>.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
@@ -141,7 +139,6 @@ export default function ImportExcelPage() {
                     </span>
                   </div>
                   
-                  {/* Progress Bar */}
                   <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200">
                     <div 
                       className="h-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-1000 ease-out"
@@ -167,7 +164,6 @@ export default function ImportExcelPage() {
             </CardContent>
           </Card>
 
-          {/* Result Alert */}
           {result && (
             <div className={`p-5 rounded-2xl border-2 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500 ${
               result.success ? "bg-green-50 border-green-100 text-green-800" : "bg-red-50 border-red-100 text-red-800"
