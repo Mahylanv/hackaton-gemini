@@ -267,11 +267,7 @@ export async function createJob(formData: FormData) {
   const validatedData = jobSchema.safeParse(rawData)
 
   if (!validatedData.success) {
-<<<<<<< HEAD
-    throw new Error(validatedData.error.issues[0].message)
-=======
     throw new Error(validatedData.error.issues[0]?.message || "Erreur de validation")
->>>>>>> 36ac3789d47ccabe8c03d2dcd3e1bd8ec3f33ee3
   }
 
   const { error } = await supabase
@@ -317,11 +313,7 @@ export async function updateJob(jobId: string, formData: FormData) {
   const validatedData = jobSchema.safeParse(rawData)
 
   if (!validatedData.success) {
-<<<<<<< HEAD
-    throw new Error(validatedData.error.issues[0].message)
-=======
     throw new Error(validatedData.error.issues[0]?.message || "Erreur de validation")
->>>>>>> 36ac3789d47ccabe8c03d2dcd3e1bd8ec3f33ee3
   }
 
   const { error } = await supabase
@@ -375,11 +367,7 @@ export async function createEvent(formData: FormData) {
   const validatedData = eventSchema.safeParse(rawData)
 
   if (!validatedData.success) {
-<<<<<<< HEAD
-    throw new Error(validatedData.error.issues[0].message)
-=======
     throw new Error(validatedData.error.issues[0]?.message || "Erreur de validation")
->>>>>>> 36ac3789d47ccabe8c03d2dcd3e1bd8ec3f33ee3
   }
 
   const { error } = await supabase
@@ -448,11 +436,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const validatedData = eventSchema.safeParse(rawData)
 
   if (!validatedData.success) {
-<<<<<<< HEAD
-    throw new Error(validatedData.error.issues[0].message)
-=======
     throw new Error(validatedData.error.issues[0]?.message || "Erreur de validation")
->>>>>>> 36ac3789d47ccabe8c03d2dcd3e1bd8ec3f33ee3
   }
 
   const { error } = await supabase
