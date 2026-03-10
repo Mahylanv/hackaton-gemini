@@ -1,0 +1,20 @@
+[
+  {
+    "fullName": "Jean Dupont",
+    "linkedinUrl": "https://www.linkedin.com/in/jeandupont/",
+    "profileImageUrl": "https://placehold.co/400x400?text=JD",
+    "degree": "Bachelor Digital",
+    "entryYear": 2020,
+    "gradYear": 2023,
+    "email": "jean.dupont@example.com"
+  },
+  {
+    "fullName": "Marie Martin",
+    "linkedinUrl": "https://www.linkedin.com/in/mariemartin/",
+    "profileImageUrl": "https://placehold.co/400x400?text=MM",
+    "degree": "MBA Marketing Digital",
+    "entryYear": 2021,
+    "gradYear": 2023,
+    "email": "marie.martin@example.com"
+  }
+]

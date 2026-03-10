@@ -3,17 +3,44 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const params = await searchParams
+  const error = params.error as string
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/50 p-4">
+      <div className="w-full max-w-md mb-4">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors group font-bold"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Retour à l'accueil
+        </Link>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Alumni MDS</CardTitle>
-          <CardDescription>Connectez-vous ou créez un compte</CardDescription>
+          <CardTitle className="text-3xl font-black italic uppercase tracking-tighter">
+            <span className="text-secondary">MYDIGIT</span>
+            <span className="text-primary">ALUMNI</span>
+          </CardTitle>
+          <CardDescription>Accès réservé à l'administration</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4">
+            {error && (
+              <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md border border-destructive/20">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" placeholder="email@exemple.com" required />
@@ -23,10 +50,10 @@ export default function LoginPage() {
               <Input id="password" name="password" type="password" required />
             </div>
             <div className="flex gap-4 pt-2">
-              <Button formAction={login} className="flex-1">
+              <Button formAction={login} className="flex-1 font-bold">
                 Connexion
               </Button>
-              <Button formAction={signup} variant="outline" className="flex-1">
+              <Button formAction={signup} variant="outline" className="flex-1 font-bold text-secondary">
                 S'inscrire
               </Button>
             </div>

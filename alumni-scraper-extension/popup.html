@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { width: 320px; padding: 15px; font-family: 'Segoe UI', sans-serif; background-color: #f3f2ef; }
+    h3 { margin-top: 0; color: #0A66C2; display: flex; align-items: center; gap: 8px; }
+    .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #666; }
+    input { width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #cdcfd2; border-radius: 8px; box-sizing: border-box; }
+    
+    .btn-group { display: flex; flex-direction: column; gap: 8px; }
+    button { width: 100%; padding: 12px; color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+    .btn-blue { background: #0A66C2; }
+    .btn-blue:hover { background: #004182; }
+    .btn-outline { background: white; color: #0A66C2; border: 1px solid #0A66C2; }
+    
+    /* Progress Section */
+    .progress-container { margin-top: 15px; display: none; }
+    .progress-bar-bg { width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+    .progress-bar-fill { width: 0%; height: 100%; background: #0A66C2; transition: width 0.5s ease; }
+    .stats { display: flex; justify-content: space-between; font-size: 11px; color: #666; font-weight: 600; }
+    
+    .status { margin-top: 15px; font-size: 13px; padding: 10px; border-radius: 8px; background: #e7f3ff; border-left: 4px solid #0A66C2; color: #004182; }
+    .timer { font-weight: bold; color: #d97706; }
+  </style>
+</head>
+<body>
+  <h3>Alumni Sniper Pro</h3>
+  <div class="card">
+    <label for="apiKey">Clé API Supabase (Service Role) :</label>
+    <input type="password" id="apiKey" placeholder="sb_secret_...">
+    
+    <div class="btn-group">
+      <button id="startScraping" class="btn-blue">Scanner cette page uniquement</button>
+      <button id="startAutoScraping" class="btn-outline">Lancer le Scan Illimité</button>
+    </div>
+    
+    <div id="progressSection" class="progress-container">
+      <div class="progress-bar-bg">
+        <div id="progressBar" class="progress-bar-fill"></div>
+      </div>
+      <div class="stats">
+        <span id="pageCount">Page: 0</span>
+        <span id="timeRemaining">Temps estimé: --:--</span>
+      </div>
+    </div>
+
+    <div id="status" class="status">Prêt à l'extraction.</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
