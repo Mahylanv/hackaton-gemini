@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
 import { YearFilter } from '@/components/features/alumni/YearFilter'
 import Link from 'next/link'
-import { GraduationCap, Mail, Linkedin, CheckCircle, X, Building2, Calendar, Clock } from 'lucide-react'
+import { GraduationCap, Mail, Linkedin, CheckCircle, X, Building2, Calendar } from 'lucide-react'
 import { Suspense } from 'react'
 
 export default async function AlumniDirectoryPage({
@@ -15,8 +15,24 @@ export default async function AlumniDirectoryPage({
   const supabase = await createClient()
   
   const params = await searchParams
-  const query = params.query as string || ''
-  const year = params.year as string || ''
+  const queryParam = params.query
+  const yearParam = params.year
+  const query = (Array.isArray(queryParam) ? queryParam[0] : queryParam) || ''
+  const year = (Array.isArray(yearParam) ? yearParam[0] : yearParam) || ''
+
+  const { data: yearRows } = await supabase
+    .from('alumni')
+    .select('grad_year')
+    .not('grad_year', 'is', null)
+    .order('grad_year', { ascending: false })
+
+  const availableYears = Array.from(
+    new Set(
+      (yearRows ?? [])
+        .map((row) => row.grad_year)
+        .filter((gradYear): gradYear is number => typeof gradYear === 'number')
+    )
+  )
 
   let supabaseQuery = supabase
     .from('alumni')
@@ -27,8 +43,9 @@ export default async function AlumniDirectoryPage({
     supabaseQuery = supabaseQuery.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
   }
 
-  if (year) {
-    supabaseQuery = supabaseQuery.eq('grad_year', parseInt(year))
+  const parsedYear = Number.parseInt(year, 10)
+  if (!Number.isNaN(parsedYear)) {
+    supabaseQuery = supabaseQuery.eq('grad_year', parsedYear)
   }
 
   const { data: alumni, error } = await supabaseQuery
@@ -54,8 +71,8 @@ export default async function AlumniDirectoryPage({
               </Suspense>
             </div>
             <div className="flex gap-2 w-full md:w-auto shrink-0">
-              <Suspense fallback={<div className="h-12 w-24 bg-muted animate-pulse rounded-xl" />}>
-                <YearFilter defaultValue={year} />
+              <Suspense fallback={<div className="h-12 w-32 bg-muted animate-pulse rounded-xl" />}>
+                <YearFilter defaultValue={year} years={availableYears} />
               </Suspense>
               {(query || year) && (
                 <Link href="/alumni">
