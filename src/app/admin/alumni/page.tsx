@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -10,36 +10,117 @@ import { createClient } from '@/utils/supabase/client'
 import { AlumniEditDialog } from '@/components/features/alumni/AlumniEditDialog'
 import Link from 'next/link'
 
+interface Alumnus {
+  id: string
+  first_name: string
+  last_name: string
+  linkedin_url: string
+  avatar_url: string | null
+  grad_year: number | null
+  degree: string | null
+  current_job_title: string | null
+  current_company: string | null
+  company_logo: string | null
+  updated_at: string
+}
+
 export default function AdminAlumniPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [result, setResult] = useState<{ success?: boolean; count?: number; error?: string; message?: string } | null>(null)
-  const [alumni, setAlumni] = useState<any[]>([])
+  const [alumni, setAlumni] = useState<Alumnus[]>([])
   const [search, setSearch] = useState('')
   const [isLoadingAlumni, setIsLoadingAlumni] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   
   // Progress state
   const [progress, setProgress] = useState({ processed: 0, total: 0, percentage: 0 })
-  const [estimatedTime, setEstimatedTime] = useState<string | null>(null)
 
   const supabase = createClient()
 
-  async function fetchAlumni() {
-    setIsLoadingAlumni(true)
-    let query = supabase.from('alumni').select('*').order('last_name', { ascending: true })
-    
-    if (search) {
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,current_company.ilike.%${search}%`)
+  const fetchAlumni = useCallback(async () => {
+    // Si on n'est pas authentifié, on ne tente même pas
+    if (isAuthenticated !== true) {
+      if (isAuthenticated === false) {
+        setIsLoadingAlumni(false)
+      }
+      return
     }
 
-    const { data } = await query
-    setAlumni(data || [])
-    setIsLoadingAlumni(false)
-  }
+    setIsLoadingAlumni(true)
+    console.log("Fetching alumni with search:", search)
+    try {
+      let query = supabase.from('alumni').select('*').order('last_name', { ascending: true })
+      
+      if (search) {
+        query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,current_company.ilike.%${search}%`)
+      }
+
+      const { data, error } = await query
+      if (error) {
+        if (error.code === 'PGRST301' || error.message.includes('JWT')) {
+          console.error("Auth error fetching alumni, redirecting to login...")
+          setIsAuthenticated(false)
+        } else {
+          console.error("Supabase error fetching alumni:", error)
+        }
+      } else {
+        console.log("Alumni data received:", data?.length, "rows")
+        setAlumni((data as Alumnus[]) || [])
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching alumni:", err)
+    } finally {
+      setIsLoadingAlumni(false)
+    }
+  }, [search, supabase, isAuthenticated])
 
   useEffect(() => {
-    fetchAlumni()
-  }, [search])
+    // Vérifier l'auth initiale
+    const checkAuth = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (error || !user) {
+          setIsAuthenticated(false)
+          setIsLoadingAlumni(false)
+        } else {
+          setIsAuthenticated(true)
+        }
+      } catch (err) {
+        setIsAuthenticated(false)
+        setIsLoadingAlumni(false)
+      }
+    }
+    checkAuth()
+
+    // Écouter les changements d'auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session?.user)
+      if (event === 'SIGNED_IN') fetchAlumni()
+      if (event === 'SIGNED_OUT') setAlumni([])
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase, fetchAlumni])
+
+  useEffect(() => {
+    if (isAuthenticated === true) {
+      fetchAlumni()
+      
+      // Souscription temps réel pour la liste des membres
+      const channel = supabase
+        .channel('alumni-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni' }, () => {
+          console.log("Realtime update received!")
+          fetchAlumni()
+        })
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [fetchAlumni, supabase, isAuthenticated])
 
   // Polling logic
   useEffect(() => {
@@ -49,15 +130,10 @@ export default function AdminAlumniPage() {
       interval = setInterval(async () => {
         const data = await getEnrichmentProgress()
         setProgress(data)
+        fetchAlumni() // Rafraîchir la liste en direct
         
         const remaining = data.total - data.processed
-        if (remaining > 0) {
-          const seconds = remaining * 6
-          const mins = Math.floor(seconds / 60)
-          const secs = seconds % 60
-          setEstimatedTime(`${mins}:${secs.toString().padStart(2, '0')}`)
-        } else {
-          setEstimatedTime("0:00")
+        if (remaining === 0) {
           if (data.total > 0 && data.processed === data.total) {
             setIsScanning(false)
             setResult({ success: true, message: "L'enrichissement de tous les profils est terminé !" })
@@ -68,6 +144,7 @@ export default function AdminAlumniPage() {
     }
 
     return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScanning])
 
   const handleUpload = async (formData: FormData) => {
@@ -76,16 +153,19 @@ export default function AdminAlumniPage() {
     const res = await importExcelData(formData)
     setResult(res)
     setIsUploading(false)
-    if (res.success) fetchAlumni()
+    if (res.success) {
+      // Déclencher automatiquement l'affichage du scan après l'import réussi
+      setIsScanning(true)
+      fetchAlumni()
+    }
   }
 
   const handleStartScan = async () => {
     setIsScanning(true)
     setResult(null)
     const res = await startEnrichmentScan()
-    if (res.success) {
-      const data = await getEnrichmentProgress()
-      setProgress(data)
+    if (res.success && res.stats) {
+      setProgress(res.stats)
     }
     setResult(res)
   }
@@ -107,17 +187,28 @@ export default function AdminAlumniPage() {
         Retour au tableau de bord
       </Link>
 
-      <h1 className="text-3xl font-bold mb-8 italic uppercase">Gestion des Alumni</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold italic uppercase">Gestion des Alumni</h1>
+        {isScanning && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#0077b5]/10 border border-[#0077b5]/20 rounded-full animate-pulse">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0077b5] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0077b5]"></span>
+            </span>
+            <span className="text-[#0077b5] text-xs font-black uppercase tracking-widest">Enrichissement Apify en cours</span>
+          </div>
+        )}
+      </div>
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Import Card */}
-        <Card className="border-2 overflow-hidden">
+        <Card className="border-2 overflow-hidden hover:border-[#0077b5]/30 transition-all duration-300">
           <CardHeader className="pt-6">
-            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-4">
+            <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600 mb-4 shadow-sm border border-slate-200">
               <FileSpreadsheet className="h-6 w-6" />
             </div>
-            <CardTitle className="text-2xl font-black italic uppercase tracking-tighter">1. Importation Excel</CardTitle>
-            <CardDescription className="font-medium">
+            <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">1. Importation Excel</CardTitle>
+            <CardDescription className="font-medium text-slate-500">
               Importez massivement des noms avec les colonnes <strong>Prenom</strong>, <strong>Nom</strong> et <strong>Linkedin</strong>.
             </CardDescription>
           </CardHeader>
@@ -126,14 +217,14 @@ export default function AdminAlumniPage() {
               <div className="relative group">
                 <Input 
                   id="file" name="file" type="file" accept=".xlsx, .xls, .csv" required
-                  className="h-32 cursor-pointer file:hidden text-transparent bg-muted/30 border-dashed border-2 border-border hover:border-primary hover:bg-primary/5 transition-all rounded-2xl"
+                  className="h-32 cursor-pointer file:hidden text-transparent bg-slate-50/50 border-dashed border-2 border-slate-200 hover:border-[#0077b5] hover:bg-[#0077b5]/5 transition-all rounded-2xl"
                 />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-muted-foreground group-hover:text-primary transition-colors">
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-400 group-hover:text-[#0077b5] transition-colors">
                   <Upload className="h-8 w-8 mb-2" />
-                  <span className="text-sm font-bold uppercase tracking-tighter italic">Cliquer ou glisser le fichier</span>
+                  <span className="text-sm font-bold uppercase tracking-tighter italic">Déposer le fichier Excel ici</span>
                 </div>
               </div>
-              <Button type="submit" disabled={isUploading} className="w-full h-14 text-lg font-black italic uppercase tracking-tighter shadow-xl">
+              <Button type="submit" disabled={isUploading} className="w-full h-14 text-lg font-black italic uppercase tracking-tighter shadow-xl bg-slate-900 hover:bg-slate-800">
                 {isUploading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Importation...</> : "Lancer l'importation"}
               </Button>
             </form>
@@ -141,59 +232,56 @@ export default function AdminAlumniPage() {
         </Card>
 
         {/* Enrichment Card */}
-        <Card className="border-2 overflow-hidden">
+        <Card className="border-2 overflow-hidden bg-slate-50/30 border-slate-200 shadow-sm transition-all duration-300">
           <CardHeader className="pt-6">
-            <div className="h-12 w-12 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 mb-4">
+            <div className="h-12 w-12 rounded-2xl bg-[#0077b5]/10 flex items-center justify-center text-[#0077b5] mb-4 shadow-sm border border-[#0077b5]/20">
               <Zap className="h-6 w-6" />
             </div>
-            <CardTitle className="text-2xl font-black italic uppercase tracking-tighter">2. Robot d'enrichissement</CardTitle>
-            <CardDescription className="font-medium">
-              Scraping LinkedIn pour récupérer les <strong>photos</strong>, <strong>diplômes</strong> et <strong>postes actuels</strong>.
+            <CardTitle className="text-2xl font-black italic uppercase tracking-tighter text-[#0077b5]">2. Enrichissement LinkedIn</CardTitle>
+            <CardDescription className="font-medium text-slate-600">
+              Les profils sont enrichis <strong>automatiquement</strong> via l&apos;API Apify (Scraping Cloud sécurisé).
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4 pb-8">
-            {!isScanning ? (
-              <Button 
-                onClick={handleStartScan} 
-                disabled={isUploading}
-                variant="outline"
-                className="w-full h-14 text-lg font-black italic uppercase tracking-tighter border-2 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all"
-              >
-                Lancer le scan automatique
-              </Button>
-            ) : (
+            {isScanning ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="font-black italic uppercase tracking-tighter text-orange-600 flex items-center gap-2">
+                  <span className="font-black italic uppercase tracking-tighter text-[#0077b5] flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Scan en cours...
+                    Apify traite les profils...
                   </span>
-                  <span className="text-muted-foreground font-mono font-bold">
-                    {progress.processed} / {progress.total} profils
+                  <span className="text-slate-500 font-mono font-bold px-2 py-1 bg-slate-100 rounded-lg">
+                    {progress.processed} / {progress.total}
                   </span>
                 </div>
                 
-                <div className="w-full h-4 bg-muted rounded-full overflow-hidden border-2 border-border shadow-inner">
+                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
                   <div 
-                    className="h-full bg-orange-500 transition-all duration-1000 ease-out"
+                    className="h-full bg-[#0077b5] transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(0,119,181,0.5)]"
                     style={{ width: `${progress.percentage}%` }}
                   />
                 </div>
 
-                <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-muted-foreground">
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <BarChart3 className="h-3.5 w-3.5" />
-                    {progress.percentage}% complété
+                    {progress.percentage}% COMPLÉTÉ
                   </div>
-                  <div className="text-orange-600 italic">
-                    Temps restant : {estimatedTime || "--:--"}
+                  <div className="text-[#0077b5] italic flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    SYNC EN TEMPS RÉEL
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-200 text-slate-500 text-sm font-bold italic shadow-sm">
+                <CheckCircle2 className="h-5 w-5 text-slate-300" />
+                <span>Prêt pour le prochain import. L&apos;enrichissement se lance automatiquement.</span>
+              </div>
             )}
             
-            <div className="mt-6 p-4 bg-orange-50 rounded-2xl border border-orange-100 text-orange-800 text-xs italic font-semibold leading-relaxed">
-              <strong>Note</strong> : Le robot utilise Playwright pour simuler un humain. Connectez-vous à LinkedIn si la fenêtre vous le demande.
+            <div className="mt-6 p-4 bg-[#0077b5]/5 rounded-2xl border border-[#0077b5]/10 text-slate-600 text-[10px] italic font-semibold leading-relaxed">
+              <strong className="text-[#0077b5] uppercase not-italic">Infrastructure Apify</strong> : Notre robot cloud récupère les postes, entreprises et logos LinkedIn sans risque de blocage local.
             </div>
           </CardContent>
         </Card>

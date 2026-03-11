@@ -110,6 +110,16 @@ async function importAlumni() {
   console.log(`- Total traités: ${data.length}`);
   console.log(`- Succès: ${successCount}`);
   console.log(`- Erreurs: ${errorCount}`);
+
+  // Lancer l'enrichissement automatique via Apify après l'import réussi
+  if (successCount > 0) {
+    console.log('\n[INFO] Lancement de l\'enrichissement via Apify...');
+    const { spawn } = await import('child_process');
+    spawn('npx', ['tsx', 'scripts/enrich-profiles.ts'], {
+      shell: true,
+      stdio: 'inherit'
+    });
+  }
 }
 
 // Lancer l'import uniquement si le script est exécuté directement
