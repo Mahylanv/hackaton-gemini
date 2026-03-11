@@ -96,30 +96,11 @@ BEGIN
     DROP POLICY IF EXISTS "Only Super Admin can update roles" ON public.profiles;
 
     -- Politiques Alumni
-    DROP POLICY IF EXISTS "Alumni are viewable by authenticated users" ON public.alumni;
-    DROP POLICY IF EXISTS "Service role can manage alumni" ON public.alumni;
-
-    -- Politiques Jobs
-    DROP POLICY IF EXISTS "Jobs are viewable by everyone" ON public.jobs;
-    DROP POLICY IF EXISTS "Admins can manage jobs" ON public.jobs;
-
-    -- Politiques Events
-    DROP POLICY IF EXISTS "Events are viewable by everyone" ON public.events;
-    DROP POLICY IF EXISTS "Admins can manage events" ON public.events;
-
-    -- Politiques Interests
-    DROP POLICY IF EXISTS "Interests are viewable by everyone" ON public.event_interests;
-    DROP POLICY IF EXISTS "Users can manage own interests" ON public.event_interests;
-    DROP POLICY IF EXISTS "Les intérêts sont visibles par tous" ON public.event_interests;
-    DROP POLICY IF EXISTS "Les utilisateurs peuvent gérer leur propre intérêt" ON public.event_interests;
-END $$;
-
--- Création des Politiques
-CREATE POLICY "Profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
 CREATE POLICY "Alumni are viewable by authenticated users" ON public.alumni FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Service role can manage alumni" ON public.alumni USING (true) WITH CHECK (true);
+
+CREATE POLICY "Admins can manage alumni" ON public.alumni FOR ALL TO authenticated 
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('ADMIN', 'SUPER_ADMIN')))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('ADMIN', 'SUPER_ADMIN')));
 
 CREATE POLICY "Jobs are viewable by everyone" ON public.jobs FOR SELECT USING (true);
 CREATE POLICY "Admins can manage jobs" ON public.jobs FOR ALL TO authenticated 

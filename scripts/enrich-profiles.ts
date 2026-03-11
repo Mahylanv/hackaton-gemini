@@ -1,110 +1,99 @@
 import { createClient } from '@supabase/supabase-js';
-import { chromium } from 'playwright';
+import { ApifyClient } from 'apify-client';
 import { loadEnvConfig } from '@next/env';
 
 loadEnvConfig(process.cwd());
 
+// --- CONFIGURATION ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const apifyToken = process.env.APIFY_API_TOKEN;
 
-const LINKEDIN_EMAIL = "rm1.marcelli@gmail.com";
-const LINKEDIN_PASSWORD = "Romain31";
+if (!apifyToken) {
+  console.error('\x1b[31m[ERREUR] APIFY_API_TOKEN manquant dans le fichier .env\x1b[0m');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+const client = new ApifyClient({ token: apifyToken });
 
 async function enrichProfiles() {
-  console.log(`\n\x1b[44m\x1b[37m MISSION : EXTRACTION POSTE & ENTREPRISE \x1b[0m\n`);
+  console.log(`\n\x1b[44m\x1b[37m MISSION : ENRICHISSEMENT VIA VLAD88 (COMMUNAUTÉ) \x1b[0m\n`);
 
+  // 1. Récupérer les profils à enrichir
   const { data: alumni, error } = await supabase
     .from('alumni')
     .select('*')
-    // On ne traite que ceux qui n'ont pas encore d'entreprise ou de job title
     .or('current_company.is.null,current_job_title.is.null');
+
+  if (error) {
+    console.error('\x1b[31m[ERREUR BDD]\x1b[0m', error.message);
+    return;
+  }
 
   if (!alumni || alumni.length === 0) {
     console.log('\x1b[33m[INFO] Tous les profils sont déjà à jour.\x1b[0m');
     return;
   }
 
-  const browser = await chromium.launch({ headless: false }); 
-  const context = await browser.newContext();
-  const page = await context.newPage();
+  const urls = alumni.map(a => a.linkedin_url).filter(Boolean);
+  
+  // On utilise l'acteur de Vlad88, souvent plus compatible avec les petits comptes
+  const ACTOR_ID = 'vlad88/linkedin-profile-scraper';
+  console.log(`\x1b[32m[OK] ${urls.length} URLs envoyées à ${ACTOR_ID}...\x1b[0m`);
 
   try {
-    await page.goto('https://www.linkedin.com/login');
-    await page.fill('#username', LINKEDIN_EMAIL);
-    await page.fill('#password', LINKEDIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*linkedin\.com\/.*/, { timeout: 300000 });
-    
-    console.log(`\x1b[32m[OK] Robot prêt !\x1b[0m`);
-
-    for (const person of alumni) {
-      console.log(`\n\x1b[35m>>> ANALYSE : ${person.first_name} ${person.last_name} <<<\x1b[0m`);
-      
-      try {
-        await page.goto(person.linkedin_url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        
-        // --- SCROLL STRATÉGIQUE POUR CHARGER LES SECTIONS ---
-        // On scrolle loin vers le bas puis on remonte
-        await page.evaluate(() => window.scrollTo(0, 2000));
-        await page.waitForTimeout(2000);
-        await page.evaluate(() => window.scrollTo(0, 500)); 
-
-        // --- 1. PHOTO DE PROFIL ---
-        const avatarUrl = await page.getAttribute('.pv-top-card-profile-picture__image--show, .pv-top-card__photo img', 'src').catch(() => null);
-
-        // --- 2. EXTRACTION EXPÉRIENCE ---
-        let jobTitle = null;
-        let companyName = null;
-        let companyLogo = null;
-
-        // On cherche le bloc d'expérience (le premier de la liste)
-        const firstExp = page.locator('li.pvs-list__paged-list-item').first();
-        
-        if (await firstExp.isVisible({ timeout: 5000 })) {
-            console.log(`  - Section Expérience détectée.`);
-            
-            // Titre du poste
-            jobTitle = await firstExp.locator('.hoverable-link-text.t-bold span[aria-hidden="true"]').first().innerText().catch(() => null);
-            
-            // Nom de l'entreprise
-            companyName = await firstExp.locator('.t-14.t-normal span[aria-hidden="true"]').first().innerText().catch(() => null);
-            
-            // Logo
-            companyLogo = await firstExp.locator('img.ivm-view-attr__img--centered').first().getAttribute('src').catch(() => null);
-            
-            if (companyName) companyName = companyName.split('·')[0].trim();
-        } else {
-            // Tentative de secours : Headline (si pas d'expérience visible)
-            console.log(`  - Expérience non trouvée, récupération du Headline.`);
-            jobTitle = await page.innerText('.text-body-medium.break-words').catch(() => null);
-        }
-
-        console.log(`  \x1b[34m[JOB] ${jobTitle || 'Non trouvé'}\x1b[0m`);
-        console.log(`  \x1b[34m[BOX] ${companyName || 'Non trouvé'}\x1b[0m`);
-
-        // MISE À JOUR BDD (On garde les infos du CSV, on ne touche qu'aux nouvelles colonnes)
-        await supabase.from('alumni').update({
-          avatar_url: avatarUrl || person.avatar_url,
-          current_job_title: jobTitle?.trim() || null,
-          current_company: companyName?.trim() || null,
-          company_logo: companyLogo || null,
-          updated_at: new Date().toISOString()
-        }).eq('id', person.id);
-
-        console.log(`  \x1b[32m[BDD] Mise à jour terminée.\x1b[0m`);
-
-      } catch (err: any) {
-        console.error(`  \x1b[31m[ERREUR] ${err.message}\x1b[0m`);
+    const run = await client.actor(ACTOR_ID).call({
+      urls: urls,
+      // On ne précise PAS de proxy résidentiel pour éviter l'erreur 400 sur compte gratuit
+      proxyConfiguration: {
+        useApifyProxy: true
       }
+    });
+
+    console.log(`\x1b[34m[STATUS] Run ID: ${run.id} terminé. Récupération des résultats...\x1b[0m`);
+
+    const { items } = await client.dataset(run.defaultDatasetId).listItems();
+    console.log(`\x1b[32m[DATASET] ${items.length} profils récupérés.\x1b[0m`);
+
+    for (const item of items) {
+      const profile = item as any;
+      const linkedinUrl = profile.url || profile.linkedinUrl;
+      if (!linkedinUrl) continue;
+
+      const person = alumni.find(a => 
+        a.linkedin_url?.replace(/\/$/, '').toLowerCase() === linkedinUrl.replace(/\/$/, '').toLowerCase()
+      );
+
+      if (!person) continue;
+
+      console.log(`\n\x1b[35m>>> ENRICHISSEMENT : ${person.first_name} ${person.last_name} <<<\x1b[0m`);
+
+      // MAPPING (Format Vlad88)
+      const jobTitle = profile.headline || profile.title || null;
+      const companyName = profile.companyName || profile.company || null;
+      const avatarUrl = profile.profilePicture || profile.profilePic || null;
+
+      console.log(`  \x1b[34m[POSTE] ${jobTitle}\x1b[0m`);
+      console.log(`  \x1b[34m[BOÎTE] ${companyName}\x1b[0m`);
+
+      await supabase.from('alumni').update({
+        avatar_url: avatarUrl || person.avatar_url,
+        current_job_title: jobTitle?.trim() || null,
+        current_company: companyName?.trim() || null,
+        updated_at: new Date().toISOString()
+      }).eq('id', person.id);
       
-      await page.waitForTimeout(2000 + Math.random() * 1000);
+      console.log(`  \x1b[32m[OK] Mis à jour dans Supabase.\x1b[0m`);
     }
 
-  } finally {
-    console.log(`\n\x1b[42m MISSION TERMINÉE \x1b[0m`);
-    await browser.close().catch(() => {});
+  } catch (err: any) {
+    console.error(`\x1b[31m[ERREUR APIFY] ${err.message}\x1b[0m`);
+    console.log(`\n\x1b[33m[CONSEIL] Si l'enrichissement échoue encore (Erreur 400), c'est que LinkedIn bloque ton compte gratuit.\x1b[0m`);
+    console.log(`\x1b[33m[SOLUTION] Tu devras passer sur un plan Apify 'Starter' ou utiliser une API comme Proxycurl (payante).\x1b[0m`);
   }
+
+  console.log(`\n\x1b[44m MISSION TERMINÉE \x1b[0m`);
 }
 
 enrichProfiles().catch(console.error);

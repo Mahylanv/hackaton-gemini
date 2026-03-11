@@ -119,6 +119,11 @@ export async function importExcelData(formData: FormData) {
 
     if (error) throw error
 
+    // Lancer automatiquement l'enrichissement via Apify après l'import
+    startEnrichmentScan().catch(err => {
+      console.error("[AUTO-ENRICH] Échec du lancement automatique:", err.message);
+    });
+
     revalidatePath('/alumni')
     return { success: true, count: alumniToImport.length }
 
@@ -138,7 +143,7 @@ export async function startEnrichmentScan() {
     return { error: 'Accès refusé' }
   }
 
-  console.log(`\x1b[35m[SERVER-ACTION]\x1b[0m Lancement du scan d'enrichissement...`);
+  console.log(`\x1b[35m[SERVER-ACTION]\x1b[0m Lancement du scan d'enrichissement via Apify...`);
 
   try {
     const child = spawn('npx', ['tsx', 'scripts/enrich-profiles.ts'], {
@@ -150,7 +155,14 @@ export async function startEnrichmentScan() {
       console.error(`\x1b[31m[SCAN ERROR]\x1b[0m ${err.message}`);
     });
 
-    return { success: true, message: 'Le scan a été lancé. Une fenêtre LinkedIn va s\'ouvrir.' }
+    // Récupérer les stats initiales
+    const stats = await getEnrichmentProgress()
+
+    return { 
+      success: true, 
+      message: 'L\'enrichissement via Apify a été lancé en arrière-plan.',
+      stats
+    }
   } catch (err: unknown) {
     const error = err as Error;
     return { error: `Erreur : ${error.message}` }
@@ -164,16 +176,17 @@ export async function getEnrichmentProgress() {
     .from('alumni')
     .select('*', { count: 'exact', head: true })
 
+  // Un profil est considéré comme "enrichi" s'il a une entreprise ou un titre de poste
   const { count: processed } = await supabase
     .from('alumni')
     .select('*', { count: 'exact', head: true })
-    .not('degree', 'eq', 'Importé via Excel')
-    .not('degree', 'is', null)
+    .not('current_company', 'is', null)
+    .not('current_job_title', 'is', null)
 
   return {
     total: total || 0,
     processed: processed || 0,
-    percentage: total ? Math.round((processed! / total) * 100) : 0
+    percentage: total ? Math.min(100, Math.round((processed! / total) * 100)) : 0
   }
 }
 
