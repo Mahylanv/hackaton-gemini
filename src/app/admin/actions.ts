@@ -4,12 +4,9 @@ import { createClient } from '@/utils/supabase/server'
 import { generateLinkedInUrl } from '@/lib/alumni-sync-utils'
 import * as XLSX from 'xlsx'
 import { revalidatePath } from 'next/cache'
-import { exec, spawn } from 'child_process'
-import { promisify } from 'util'
+import { spawn } from 'child_process'
 import { z } from 'zod'
 import { redirect } from 'next/navigation'
-
-const execPromise = promisify(exec)
 
 const jobSchema = z.object({
   title: z.string().min(2, "Le titre est requis"),
@@ -83,7 +80,7 @@ export async function importExcelData(formData: FormData) {
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
     
-    const rawData = XLSX.utils.sheet_to_json(worksheet) as any[]
+    const rawData = XLSX.utils.sheet_to_json(worksheet) as Record<string, string>[]
     
     const alumniToImport = rawData.map(row => {
       const firstName = row.Prenom || row.prenom || row['First Name'] || row.firstname || ''
@@ -110,7 +107,7 @@ export async function importExcelData(formData: FormData) {
         degree: 'Importé via Excel',
         updated_at: new Date().toISOString()
       }
-    }).filter(Boolean)
+    }).filter((x): x is NonNullable<typeof x> => x !== null)
 
     if (alumniToImport.length === 0) {
       return { error: 'Aucune donnée valide trouvée dans le fichier' }
@@ -122,11 +119,17 @@ export async function importExcelData(formData: FormData) {
 
     if (error) throw error
 
+    // Lancer automatiquement l'enrichissement via Apify après l'import
+    startEnrichmentScan().catch(err => {
+      console.error("[AUTO-ENRICH] Échec du lancement automatique:", err.message);
+    });
+
     revalidatePath('/alumni')
     return { success: true, count: alumniToImport.length }
 
-  } catch (err: any) {
-    return { error: `Erreur : ${err.message}` }
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { error: `Erreur : ${error.message}` }
   }
 }
 
@@ -140,7 +143,7 @@ export async function startEnrichmentScan() {
     return { error: 'Accès refusé' }
   }
 
-  console.log(`\x1b[35m[SERVER-ACTION]\x1b[0m Lancement du scan d'enrichissement...`);
+  console.log(`\x1b[35m[SERVER-ACTION]\x1b[0m Lancement du scan d'enrichissement via Apify...`);
 
   try {
     const child = spawn('npx', ['tsx', 'scripts/enrich-profiles.ts'], {
@@ -148,13 +151,21 @@ export async function startEnrichmentScan() {
       stdio: 'inherit'
     });
 
-    child.on('error', (err: any) => {
+    child.on('error', (err: Error) => {
       console.error(`\x1b[31m[SCAN ERROR]\x1b[0m ${err.message}`);
     });
 
-    return { success: true, message: 'Le scan a été lancé. Une fenêtre LinkedIn va s\'ouvrir.' }
-  } catch (err: any) {
-    return { error: `Erreur : ${err.message}` }
+    // Récupérer les stats initiales
+    const stats = await getEnrichmentProgress()
+
+    return { 
+      success: true, 
+      message: 'L\'enrichissement via Apify a été lancé en arrière-plan.',
+      stats
+    }
+  } catch (err: unknown) {
+    const error = err as Error;
+    return { error: `Erreur : ${error.message}` }
   }
 }
 
@@ -165,17 +176,29 @@ export async function getEnrichmentProgress() {
     .from('alumni')
     .select('*', { count: 'exact', head: true })
 
+  // Un profil est considéré comme "enrichi" s'il a une entreprise ou un titre de poste
   const { count: processed } = await supabase
     .from('alumni')
     .select('*', { count: 'exact', head: true })
-    .not('degree', 'eq', 'Importé via Excel')
-    .not('degree', 'is', null)
+    .not('current_company', 'is', null)
+    .not('current_job_title', 'is', null)
 
   return {
     total: total || 0,
     processed: processed || 0,
-    percentage: total ? Math.round((processed! / total) * 100) : 0
+    percentage: total ? Math.min(100, Math.round((processed! / total) * 100)) : 0
   }
+}
+
+export async function getAlumniList() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('alumni')
+    .select('*')
+    .order('updated_at', { ascending: false })
+
+  if (error) throw new Error(error.message)
+  return data
 }
 
 export async function updateRole(userId: string, role: string) {
